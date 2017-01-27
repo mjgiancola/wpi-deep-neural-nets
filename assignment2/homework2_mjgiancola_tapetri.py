@@ -1,7 +1,7 @@
 # NOTE -- please do NOT put your name(s) in the Python code; instead, name the Python file
 # itself to include your WPI username(s).
 
-# import cv2  # Uncomment if you have OpenCV and want to run the real-time demo
+import cv2  # Uncomment if you have OpenCV and want to run the real-time demo
 import numpy as np
 
 def J (w, faces, labels, alpha = 0.):
@@ -24,13 +24,13 @@ def gradJ (w, faces, labels, alpha = 0.):
 def gradientDescent (trainingFaces, trainingLabels, testingFaces, testingLabels, alpha = 0.):
 
     """
-    Pick a random starting value for w ∈ R 576 and a small learning rate (epis << 1). Then, using the expression for the gradient 
-    of the cost function, iteratively update w to reduce the cost J(w). Stop when the diﬀerence between J over successive training 
-    rounds is below some “tolerance” (e.g., δ = 0.001).
-    
-
-    
+    Pick a random starting value for w in R^576 and a small learning rate
+    (epis << 1). Then, using the expression for the gradient of the cost
+    function, iteratively update w to reduce the cost of J(w). Stop when
+    the difference between J over successive training rounds is below some
+    tolerance (eg. delta = 0.001).
     """
+
     w = np.zeros(trainingFaces.shape[1])  # Or set to random vect1or
     tolerance = 0.001
 
@@ -133,4 +133,4 @@ if __name__ == "__main__":
     # for w in [ w1, w2, w3 ]:
     #     reportCosts(w, trainingFaces, trainingLabels, testingFaces, testingLabels)
     
-    #detectSmiles(w3)  # Requires OpenCV
+    detectSmiles(w1)  # Requires OpenCV
