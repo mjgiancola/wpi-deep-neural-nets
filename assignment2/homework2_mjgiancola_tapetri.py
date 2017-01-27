@@ -1,7 +1,7 @@
 # NOTE -- please do NOT put your name(s) in the Python code; instead, name the Python file
 # itself to include your WPI username(s).
 
-import cv2  # Uncomment if you have OpenCV and want to run the real-time demo
+# import cv2  # Uncomment if you have OpenCV and want to run the real-time demo
 import numpy as np
 
 def J (w, faces, labels, alpha = 0.):
@@ -11,14 +11,25 @@ def J (w, faces, labels, alpha = 0.):
     residue = y_hats - y_actuals
     squared = np.square(residue)
     
-    return 0.5 * np.sum(squared)
+    reg = alpha * w.dot(w)
+
+    return 0.5 * np.sum(squared) + reg
 
 
 def gradJ (w, faces, labels, alpha = 0.):
 
     #     Gradient = x^T * (x*w - y)
 
-    gradient = np.transpose(faces).dot((faces.dot(w) - labels))
+    # gradient = np.transpose(faces).dot((faces.dot(w) - labels))
+    # print('faces')
+    # print(faces.shape)
+    # print('labels')
+    # print(labels.shape)
+    # print('w')
+    # print(w.shape)
+
+    gradient = faces.T.dot(faces.dot(w) - labels)
+
     return gradient
 
 def gradientDescent (trainingFaces, trainingLabels, testingFaces, testingLabels, alpha = 0.):
@@ -30,11 +41,27 @@ def gradientDescent (trainingFaces, trainingLabels, testingFaces, testingLabels,
     the difference between J over successive training rounds is below some
     tolerance (eg. delta = 0.001).
     """
+    learning_rate = 0.000001
+    tolerance = 0.0001
 
-    w = np.zeros(trainingFaces.shape[1])  # Or set to random vect1or
-    tolerance = 0.001
+    w = np.zeros(trainingFaces.shape[1])  # Or set to random vector
 
-    print gradJ(w, trainingFaces, trainingLabels)
+    lastJ = np.inf
+    currentJ =  J(w, trainingFaces, trainingLabels, alpha) 
+    delta = lastJ - currentJ
+
+    while (delta > tolerance):
+
+        print('J = ' + str(currentJ) + '||w|| = ' + str(np.linalg.norm(w)))
+
+        lastJ = currentJ
+        w = w - ( learning_rate * gradJ(w, trainingFaces, trainingLabels) )
+        currentJ = J(w, trainingFaces, trainingLabels, alpha)
+        delta = abs(lastJ - currentJ)
+
+        print('Delta = ' + str(delta))
+
+
 
     return w
 
@@ -125,12 +152,14 @@ if __name__ == "__main__":
     # print(trainingLabels.shape)
 
     w1 = method1(trainingFaces, trainingLabels, testingFaces, testingLabels)
-    # w2 = method2(trainingFaces, trainingLabels, testingFaces, testingLabels)
-    # w3 = method3(trainingFaces, trainingLabels, testingFaces, testingLabels)
+    w2 = method2(trainingFaces, trainingLabels, testingFaces, testingLabels)
+    w3 = method3(trainingFaces, trainingLabels, testingFaces, testingLabels)
 
-    reportCosts(w1, trainingFaces, trainingLabels, testingFaces, testingLabels)
+    # reportCosts(w1, trainingFaces, trainingLabels, testingFaces, testingLabels)
+    # reportCosts(w2, trainingFaces, trainingLabels, testingFaces, testingLabels)
+    # reportCosts(w3, trainingFaces, trainingLabels, testingFaces, testingLabels)
 
-    # for w in [ w1, w2, w3 ]:
-    #     reportCosts(w, trainingFaces, trainingLabels, testingFaces, testingLabels)
+    for w in [ w1, w2, w3 ]:
+        reportCosts(w, trainingFaces, trainingLabels, testingFaces, testingLabels)
     
-    detectSmiles(w1)  # Requires OpenCV
+    # detectSmiles(w1)  # Requires OpenCV
