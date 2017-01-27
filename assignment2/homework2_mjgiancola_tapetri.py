@@ -1,7 +1,7 @@
 # NOTE -- please do NOT put your name(s) in the Python code; instead, name the Python file
 # itself to include your WPI username(s).
 
-# import cv2  # Uncomment if you have OpenCV and want to run the real-time demo
+import cv2  # Uncomment if you have OpenCV and want to run the real-time demo
 import numpy as np
 
 def J (w, faces, labels, alpha = 0.):
@@ -17,17 +17,7 @@ def J (w, faces, labels, alpha = 0.):
 
 
 def gradJ (w, faces, labels, alpha = 0.):
-
     #     Gradient = x^T * (x*w - y)
-
-    # gradient = np.transpose(faces).dot((faces.dot(w) - labels))
-    # print('faces')
-    # print(faces.shape)
-    # print('labels')
-    # print(labels.shape)
-    # print('w')
-    # print(w.shape)
-
     gradient = faces.T.dot(faces.dot(w) - labels)
 
     return gradient
@@ -41,8 +31,8 @@ def gradientDescent (trainingFaces, trainingLabels, testingFaces, testingLabels,
     the difference between J over successive training rounds is below some
     tolerance (eg. delta = 0.001).
     """
-    learning_rate = 0.000001
-    tolerance = 0.0001
+    learning_rate = 3.4e-6
+    tolerance = 1e-3
 
     w = np.zeros(trainingFaces.shape[1])  # Or set to random vector
 
@@ -52,7 +42,7 @@ def gradientDescent (trainingFaces, trainingLabels, testingFaces, testingLabels,
 
     while (delta > tolerance):
 
-        print('J = ' + str(currentJ) + '||w|| = ' + str(np.linalg.norm(w)))
+        print('J = ' + str(currentJ) + ' ||w|| = ' + str(np.linalg.norm(w)))
 
         lastJ = currentJ
         w = w - ( learning_rate * gradJ(w, trainingFaces, trainingLabels) )
@@ -61,12 +51,10 @@ def gradientDescent (trainingFaces, trainingLabels, testingFaces, testingLabels,
 
         print('Delta = ' + str(delta))
 
-
-
     return w
 
 def method1 (trainingFaces, trainingLabels, testingFaces, testingLabels):
-    w = np.zeros(trainingFaces.shape[1])  # TODO fix this!
+    w = np.zeros(trainingFaces.shape[1])
 
     """
     gradient = 0
@@ -79,8 +67,6 @@ def method1 (trainingFaces, trainingLabels, testingFaces, testingLabels):
     A = np.transpose(trainingFaces).dot(trainingFaces)
     b = np.transpose(trainingFaces).dot(trainingLabels)
     w = np.linalg.solve(A, b)
-
-    # print(w.size)
 
     return w
 
@@ -121,7 +107,7 @@ def detectSmiles (w):
     # Starting video capture
     vc = cv2.VideoCapture()
     vc.open(0)
-    faceDetector = cv2.CascadeClassifier("haarcascade_frontalface_alt2.xml")  # TODO update the path
+    faceDetector = cv2.CascadeClassifier("haarcascade_frontalface_alt2.xml")
     while vc.grab():
         (tf,im) = vc.read()
         im = cv2.resize(im, (im.shape[1]/2, im.shape[0]/2))  # Divide resolution by 2 for speed
@@ -148,18 +134,11 @@ if __name__ == "__main__":
         testingFaces = np.load("testingFaces.npy")
         testingLabels = np.load("testingLabels.npy")
 
-    # print(trainingFaces.shape)
-    # print(trainingLabels.shape)
-
     w1 = method1(trainingFaces, trainingLabels, testingFaces, testingLabels)
     w2 = method2(trainingFaces, trainingLabels, testingFaces, testingLabels)
     w3 = method3(trainingFaces, trainingLabels, testingFaces, testingLabels)
 
-    # reportCosts(w1, trainingFaces, trainingLabels, testingFaces, testingLabels)
-    # reportCosts(w2, trainingFaces, trainingLabels, testingFaces, testingLabels)
-    # reportCosts(w3, trainingFaces, trainingLabels, testingFaces, testingLabels)
-
     for w in [ w1, w2, w3 ]:
-        reportCosts(w, trainingFaces, trainingLabels, testingFaces, testingLabels)
+       reportCosts(w, trainingFaces, trainingLabels, testingFaces, testingLabels)
     
-    # detectSmiles(w1)  # Requires OpenCV
+    detectSmiles(w3)  # Requires OpenCV
