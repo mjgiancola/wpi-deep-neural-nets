@@ -5,19 +5,57 @@
 import numpy as np
 
 def J (w, faces, labels, alpha = 0.):
-    return .5 * np.sum(np.power( (np.dot(w, faces) - labels), 2)
+
+    y_hats = w.dot(np.transpose(faces))
+    y_actuals = labels
+    residue = y_hats - y_actuals
+    squared = np.square(residue)
+    
+    return 0.5 * np.sum(squared)
+
 
 def gradJ (w, faces, labels, alpha = 0.):
-    return np.sum(np.dot(faces, faces)) * w - np.sum(np.dot(faces, labels))
+
+    #     Gradient = x^T * (x*w - y)
+
+    gradient = np.transpose(faces).dot((faces.dot(w) - labels))
+    return gradient
 
 def gradientDescent (trainingFaces, trainingLabels, testingFaces, testingLabels, alpha = 0.):
-    w = np.zeros(trainingFaces.shape[1])  # Or set to random vector
-    # TODO fix this!
+
+    """
+    Pick a random starting value for w ∈ R 576 and a small learning rate (epis << 1). Then, using the expression for the gradient 
+    of the cost function, iteratively update w to reduce the cost J(w). Stop when the diﬀerence between J over successive training 
+    rounds is below some “tolerance” (e.g., δ = 0.001).
+    
+
+    
+    """
+    w = np.zeros(trainingFaces.shape[1])  # Or set to random vect1or
+    tolerance = 0.001
+
+    print gradJ(w, trainingFaces, trainingLabels)
+
     return w
 
 def method1 (trainingFaces, trainingLabels, testingFaces, testingLabels):
     w = np.zeros(trainingFaces.shape[1])  # TODO fix this!
-    return np.linalg.solve(gradJ(w, trainingFaces, trainingLabels), w)
+
+    """
+    gradient = 0
+    gives us:
+    w = (x^T*X)^-1 * x^Ty
+    w = A^(-1) * b
+    w = Solve(A,b)
+
+    """
+    A = np.transpose(trainingFaces).dot(trainingFaces)
+    b = np.transpose(trainingFaces).dot(trainingLabels)
+    w = np.linalg.solve(A, b)
+
+    # print(w.size)
+
+    return w
 
 def method2 (trainingFaces, trainingLabels, testingFaces, testingLabels):
     return gradientDescent(trainingFaces, trainingLabels, testingFaces, testingLabels)
@@ -83,11 +121,16 @@ if __name__ == "__main__":
         testingFaces = np.load("testingFaces.npy")
         testingLabels = np.load("testingLabels.npy")
 
-    w1 = method1(trainingFaces, trainingLabels, testingFaces, testingLabels)
-    #w2 = method2(trainingFaces, trainingLabels, testingFaces, testingLabels)
-    #w3 = method3(trainingFaces, trainingLabels, testingFaces, testingLabels)
+    # print(trainingFaces.shape)
+    # print(trainingLabels.shape)
 
-    for w in [ w1, w2, w3 ]:
-        reportCosts(w, trainingFaces, trainingLabels, testingFaces, testingLabels)
+    w1 = method1(trainingFaces, trainingLabels, testingFaces, testingLabels)
+    # w2 = method2(trainingFaces, trainingLabels, testingFaces, testingLabels)
+    # w3 = method3(trainingFaces, trainingLabels, testingFaces, testingLabels)
+
+    reportCosts(w1, trainingFaces, trainingLabels, testingFaces, testingLabels)
+
+    # for w in [ w1, w2, w3 ]:
+    #     reportCosts(w, trainingFaces, trainingLabels, testingFaces, testingLabels)
     
     #detectSmiles(w3)  # Requires OpenCV
