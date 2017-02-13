@@ -3,6 +3,10 @@
 
 import cv2  # Uncomment if you have OpenCV and want to run the real-time demo
 import numpy as np
+from scipy.optimize import check_grad
+
+def sigmoid_array(x):
+  return 1.0 / (1.0 + np.exp(-1.0 * x))
 
 def J (w, faces, labels, alpha = 0.): # TODO Change to cross-entropy loss function
 
@@ -11,10 +15,36 @@ def J (w, faces, labels, alpha = 0.): # TODO Change to cross-entropy loss functi
     residue = y_hats - y_actuals
     squared = np.square(residue)
     
-    reg = alpha * w.dot(w)
+    reg = 0.5*alpha * w.dot(w)
 
     return 0.5 * np.sum(squared) + reg
 
+def J_new (w, faces, labels, alpha = 0.): # TODO Change to cross-entropy loss function
+    
+
+    y_hats = sigmoid_array(w.dot(np.transpose(faces)))
+    print (y_hats)
+    y_actuals = labels
+    m = y_hats.shape[0]
+    ones = np.ones(y_actuals.shape)
+
+    positives = y_actuals*np.log(y_hats) 
+    negatives = (ones - y_actuals)*np.log(ones-y_hats)
+
+    regul = 0.5*alpha*np.dot(w.T,w)
+
+    return -1.0/m * np.sum(positives + negatives) + regul
+
+def gradJ_new (w, faces, labels, alpha = 0.):
+
+
+    y_hats = sigmoid_array(w.dot(np.transpose(faces)))
+    y_actuals = labels
+    m = y_hats.shape[0]
+    print(m)
+    result = 1.0/m * np.sum(np.dot(faces.T,np.transpose((y_hats - y_actuals))))
+    # result = -1.0/m * np.sum(y_actuals - y_hats)
+    return result
 
 def gradJ (w, faces, labels, alpha = 0.): # TODO Change to gradient of cross-entropy loss function
     #     Gradient = x^T * (x*w - y)
@@ -81,6 +111,30 @@ def reportCosts (w, trainingFaces, trainingLabels, testingFaces, testingLabels, 
     print "Training cost: {}".format(J(w, trainingFaces, trainingLabels, alpha))
     print "Testing cost:  {}".format(J(w, testingFaces, testingLabels, alpha))
 
+
+def whiten (trainingFaces):
+    # cov = np.dot(trainingFaces.T, trainingFaces)
+    """ 
+    Return matrix L such that (trainingFaces*L)^T(trainingFaces*L) = I
+    """
+    # w - eigenvalues
+    # v - eigenvectors
+    # trainingFaces -= np.mean(trainingFaces, axis = 0)
+    # cov = np.dot(trainingFaces.T, trainingFaces) # / trainingFaces.shape[0]
+
+    # U,S,V = np.linalg.svd(cov)
+
+    # w = np.sqrt(S + 1e-5)
+    # v = U
+
+    v,w = np.linalg.eig(cov)
+
+    lamd = np.diag(np.float_power(w, (-0.5)))
+    phi = v
+
+    L = phi.dot(lamd)
+    return L
+
 # Accesses the web camera, displays a window showing the face, and classifies smiles in real time
 # Requires OpenCV.
 def detectSmiles (w):
@@ -133,14 +187,38 @@ if __name__ == "__main__":
         trainingLabels = np.load("trainingLabels.npy")
         testingFaces = np.load("testingFaces.npy")
         testingLabels = np.load("testingLabels.npy")
+
+    w = 1e3 * np.random.choice(5, 576) 
+    # w = np.zeros(trainingFaces.shape[1])
+    # w = trainingFaces[4]
+    # print(w.shape)
+    # print(w)
+    print (check_grad(J_new, gradJ_new, w, trainingFaces, trainingLabels))
+
+
+    def func(x):
+        return x[0]**2 - 0.5 * x[1]**3
+    def grad(x):
+        return [2 * x[0], -1.5 * x[1]**2]
+    print(check_grad(func, grad, [0,0]))
+
+    # trainingFaces = trainingFaces.dot(whiten(trainingFaces))
     
     # TODO Whiten trainingFaces, testingFaces before running gradient descent
     
-    w1 = method1(trainingFaces, trainingLabels, testingFaces, testingLabels)
-    w2 = method2(trainingFaces, trainingLabels, testingFaces, testingLabels)
-    w3 = method3(trainingFaces, trainingLabels, testingFaces, testingLabels)
+    # transformed = trainingFaces.dot(whiten(trainingFaces))
+    # cov2 = np.dot(transformed.T, transformed)
 
-    for w in [ w1, w2, w3 ]:
-       reportCosts(w, trainingFaces, trainingLabels, testingFaces, testingLabels)
+    # w, v = np.linalg.eig(cov2)
+    # print (w)
+
+    # w1 = method1(trainingFaces, trainingLabels, testingFaces, testingLabels)
+    #w2 = method2(trainingFaces, trainingLabels, testingFaces, testingLabels)
+    # w3 = method3(trainingFaces, trainingLabels, testingFaces, testingLabels)
+
+    # for w in [ w1, w2, w3 ]:
+    # reportCosts(w1, trainingFaces, trainingLabels, testingFaces, testingLabels)
+    # reportCosts(w2, trainingFaces, trainingLabels, testingFaces, testingLabels)
+    # reportCosts(w3, trainingFaces, trainingLabels, testingFaces, testingLabels)
     
-    detectSmiles(w3)  # Requires OpenCV
+    # detectSmiles(w3)  # Requires OpenCV
