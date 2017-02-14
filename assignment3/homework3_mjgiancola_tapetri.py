@@ -4,6 +4,7 @@
 import cv2  # Uncomment if you have OpenCV and want to run the real-time demo
 import numpy as np
 from scipy.optimize import check_grad
+from sklearn.linear_model import LogisticRegression
 
 # Performs logistic sigmoid element-wise on matrix x
 def sigmoid_array(x):
@@ -15,6 +16,7 @@ def J (w, faces, labels, alpha = 0.):
     y_hats = w.dot(np.transpose(faces))
     y_actuals = labels
     residue = y_hats - y_actuals
+    print(residue)
     squared = np.square(residue)
     
     reg = 0.5*alpha * w.dot(w)
@@ -34,7 +36,7 @@ def J_new (w, faces, labels, alpha = 0.):
     #print(w.dot(np.transpose(faces)))
     
     y_hats = sigmoid_array(w.dot(np.transpose(faces)))
-    print (y_hats)
+    # print (y_hats)
     y_actuals = labels
     m = y_hats.shape[0]
     ones = np.ones(y_actuals.shape)
@@ -51,15 +53,31 @@ def gradJ_new (w, faces, labels, alpha = 0.):
 
 
     y_hats = sigmoid_array(w.dot(np.transpose(faces)))
-    print("++++++++")
-    print(y_hats)
-    print("```````")
+    # print("in gradJ_new: y_hats")
+    # print(y_hats)
     y_actuals = labels
+    # print("in gradJ_new: y_actuals")
+    # print(y_actuals)
     m = y_hats.shape[0]
-    #print(m)
+    # print("in gradJ_new: m")
+    # print(m)
     regul = alpha * w
-    result = 1.0/m * np.sum(np.dot(faces.T, np.transpose((y_hats - y_actuals)))) + regul
+    # print("in gradJ_new: regul")
+    # print(regul)
+
+    # print("in gradJ_new: y_hats-y_actuals")
+    # print(np.transpose((y_hats - y_actuals)))
+
+    # print("in gradJ_new: faces")
+    # print(faces)
+
+    result = 1.0/m * np.dot(faces.T, np.transpose((y_hats - y_actuals))) + regul
     # result = -1.0/m * np.sum(y_actuals - y_hats)
+
+    # print("in gradJ_new: gradient")
+    # print(result.shape)
+    # print(result)
+
     return result
 
 # cost and gradient are function pointers for the loss function and respective gradient
@@ -72,8 +90,14 @@ def gradientDescent (trainingFaces, trainingLabels, cost, gradient, alpha = 0.):
     the difference between J over successive training rounds is below some
     tolerance (eg. delta = 0.001).
     """
-    learning_rate = 3e-5
-    tolerance = 1e-3
+
+    # parameters for problem 3
+    learning_rate = 3e-3
+    tolerance = 1e-4
+
+    # parameters for problem 2
+    # learning_rate = 3e-5
+    # tolerance = 1e-3
 
     #w = np.zeros(trainingFaces.shape[1])  # Or set to random vector
     w = np.random.choice(5, 576) 
@@ -84,26 +108,29 @@ def gradientDescent (trainingFaces, trainingLabels, cost, gradient, alpha = 0.):
 
     num_iter = 1
     
-    print lastJ
-    print currentJ
-
+    # print lastJ
+    # print currentJ
+    # print(w)
     while (delta > tolerance):
     
-        print("%2d: J = %10f\t||w|| = %5f\tDelta = %5f" % ((num_iter, currentJ, np.linalg.norm(w), delta)))
+        if (not (num_iter % 100)): 
+            print("%2d: J = %10f\t||w|| = %5f\tDelta = %5f" % ((num_iter, currentJ, np.linalg.norm(w), delta)))
         
     
         lastJ = currentJ
         w = w - ( learning_rate * gradient(w, trainingFaces, trainingLabels) )
-        print("-----")
-        print(gradient(w, trainingFaces, trainingLabels))
-        print(w)
-        print("-----")
+
+        # print("-----")
+        # print(gradient(w, trainingFaces, trainingLabels))
+        # print(w)
+        # print("-----")
         currentJ = cost(w, trainingFaces, trainingLabels, alpha)
         delta = abs(lastJ - currentJ)
+
+        # print("new J")
+        # print(currentJ)
         
         num_iter += 1
-        
-        print "delta: " + str(delta)
         
     return w
 
@@ -154,13 +181,28 @@ if __name__ == "__main__":
         raw_input("Eigenvalues are almost all close to one.\nPress any key to continue.")
 
         # Run (unregularized) gradient descent on whitened data
-        gd_unreg(transformedFaces, trainingLabels)
-    
+        w_whiten = gd_unreg(transformedFaces, trainingLabels)
+        
     # TODO Problem 3
-    
-    
     
     w = np.random.choice(5, 576) 
     
-    #print (check_grad(J_new, gradJ_new, w, trainingFaces, trainingLabels))
-    gd_reg(trainingFaces, trainingLabels)
+    print (check_grad(J_new, gradJ_new, w, trainingFaces, trainingLabels))
+    raw_input("Ideally that would have been really low...")
+
+    w_cross_entropy = gd_reg(trainingFaces, trainingLabels)
+    result_cross_entropy = J_new (w_cross_entropy, testingFaces, testingLabels, alpha = 0.)
+
+    logreg = LogisticRegression(C=1e10, fit_intercept=False)
+    logreg.fit(trainingFaces, trainingLabels)
+
+    w_logreg = logreg.coef_[0]
+
+    result_logreg = J_new (w_logreg, testingFaces, testingLabels, alpha = 0.)
+
+    print("Logreg:")
+    print(result_logreg)
+    print("Cross Entropy:")
+    print(result_cross_entropy)
+
+
