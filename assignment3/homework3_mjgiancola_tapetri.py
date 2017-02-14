@@ -5,10 +5,12 @@ import cv2  # Uncomment if you have OpenCV and want to run the real-time demo
 import numpy as np
 from scipy.optimize import check_grad
 
+# Performs logistic sigmoid element-wise on matrix x
 def sigmoid_array(x):
-  return 1.0 / (1.0 + np.exp(-1.0 * x))
+  return 1.0 / (1.0 + np.exp(-x))
 
-def J (w, faces, labels, alpha = 0.): # TODO Change to cross-entropy loss function
+# Original cost function (from Homework 2)
+def J (w, faces, labels, alpha = 0.):
 
     y_hats = w.dot(np.transpose(faces))
     y_actuals = labels
@@ -19,9 +21,18 @@ def J (w, faces, labels, alpha = 0.): # TODO Change to cross-entropy loss functi
 
     return 0.5 * np.sum(squared) + reg
 
-def J_new (w, faces, labels, alpha = 0.): # TODO Change to cross-entropy loss function
-    
+# Original gradient (from Homework 2)
+def gradJ (w, faces, labels, alpha = 0.):
+    #     Gradient = x^T * (x*w - y)
+    gradient = faces.T.dot(faces.dot(w) - labels)
 
+    return gradient
+
+# Cross Entropy Loss Function
+def J_new (w, faces, labels, alpha = 0.):
+    
+    #print(w.dot(np.transpose(faces)))
+    
     y_hats = sigmoid_array(w.dot(np.transpose(faces)))
     print (y_hats)
     y_actuals = labels
@@ -29,30 +40,30 @@ def J_new (w, faces, labels, alpha = 0.): # TODO Change to cross-entropy loss fu
     ones = np.ones(y_actuals.shape)
 
     positives = y_actuals*np.log(y_hats) 
-    negatives = (ones - y_actuals)*np.log(ones-y_hats)
+    negatives = (ones - y_actuals)*np.log(ones-y_hats+1e-8)
 
     regul = 0.5*alpha*np.dot(w.T,w)
 
     return -1.0/m * np.sum(positives + negatives) + regul
 
+# Gradient of Cross Entropy
 def gradJ_new (w, faces, labels, alpha = 0.):
 
 
     y_hats = sigmoid_array(w.dot(np.transpose(faces)))
+    print("++++++++")
+    print(y_hats)
+    print("```````")
     y_actuals = labels
     m = y_hats.shape[0]
-    print(m)
-    result = 1.0/m * np.sum(np.dot(faces.T,np.transpose((y_hats - y_actuals))))
+    #print(m)
+    regul = alpha * w
+    result = 1.0/m * np.sum(np.dot(faces.T, np.transpose((y_hats - y_actuals)))) + regul
     # result = -1.0/m * np.sum(y_actuals - y_hats)
     return result
 
-def gradJ (w, faces, labels, alpha = 0.): # TODO Change to gradient of cross-entropy loss function
-    #     Gradient = x^T * (x*w - y)
-    gradient = faces.T.dot(faces.dot(w) - labels)
-
-    return gradient
-
-def gradientDescent (trainingFaces, trainingLabels, testingFaces, testingLabels, alpha = 0.):
+# cost and gradient are function pointers for the loss function and respective gradient
+def gradientDescent (trainingFaces, trainingLabels, cost, gradient, alpha = 0.):
 
     """
     Pick a random starting value for w in R^576 and a small learning rate
@@ -61,124 +72,67 @@ def gradientDescent (trainingFaces, trainingLabels, testingFaces, testingLabels,
     the difference between J over successive training rounds is below some
     tolerance (eg. delta = 0.001).
     """
-    learning_rate = 3.4e-6
+    learning_rate = 3e-5
     tolerance = 1e-3
 
-    w = np.zeros(trainingFaces.shape[1])  # Or set to random vector
+    #w = np.zeros(trainingFaces.shape[1])  # Or set to random vector
+    w = np.random.choice(5, 576) 
 
     lastJ = np.inf
-    currentJ =  J(w, trainingFaces, trainingLabels, alpha) 
+    currentJ =  cost(w, trainingFaces, trainingLabels, alpha) 
     delta = lastJ - currentJ
 
+    num_iter = 1
+    
+    print lastJ
+    print currentJ
+
     while (delta > tolerance):
-
-        print('J = ' + str(currentJ) + ' ||w|| = ' + str(np.linalg.norm(w)))
-
+    
+        print("%2d: J = %10f\t||w|| = %5f\tDelta = %5f" % ((num_iter, currentJ, np.linalg.norm(w), delta)))
+        
+    
         lastJ = currentJ
-        w = w - ( learning_rate * gradJ(w, trainingFaces, trainingLabels) )
-        currentJ = J(w, trainingFaces, trainingLabels, alpha)
+        w = w - ( learning_rate * gradient(w, trainingFaces, trainingLabels) )
+        print("-----")
+        print(gradient(w, trainingFaces, trainingLabels))
+        print(w)
+        print("-----")
+        currentJ = cost(w, trainingFaces, trainingLabels, alpha)
         delta = abs(lastJ - currentJ)
-
-        print('Delta = ' + str(delta))
-
+        
+        num_iter += 1
+        
+        print "delta: " + str(delta)
+        
     return w
 
-def method1 (trainingFaces, trainingLabels, testingFaces, testingLabels):
-    w = np.zeros(trainingFaces.shape[1])
+# Unregularized Gradient Descent with Squared Error Cost Function
+# (Problem 2)
+def gd_unreg (trainingFaces, trainingLabels):
+    return gradientDescent(trainingFaces, trainingLabels, J, gradJ)
 
-    """
-    gradient = 0
-    gives us:
-    w = (x^T*X)^-1 * x^Ty
-    w = A^(-1) * b
-    w = Solve(A,b)
+# Regularized Gradient Descent with Cross Entropy Loss Function
+# (Problem 3)
+def gd_reg (trainingFaces, trainingLabels):
+    alpha = 0
+    return gradientDescent(trainingFaces, trainingLabels, J_new, gradJ_new, alpha)
 
-    """
-    A = np.transpose(trainingFaces).dot(trainingFaces)
-    b = np.transpose(trainingFaces).dot(trainingLabels)
-    w = np.linalg.solve(A, b)
-
-    return w
-
-def method2 (trainingFaces, trainingLabels, testingFaces, testingLabels):
-    return gradientDescent(trainingFaces, trainingLabels, testingFaces, testingLabels)
-
-def method3 (trainingFaces, trainingLabels, testingFaces, testingLabels):
-    alpha = 1e3
-    return gradientDescent(trainingFaces, trainingLabels, testingFaces, testingLabels, alpha)
-
-def reportCosts (w, trainingFaces, trainingLabels, testingFaces, testingLabels, alpha = 0.):
-    print "Training cost: {}".format(J(w, trainingFaces, trainingLabels, alpha))
-    print "Testing cost:  {}".format(J(w, testingFaces, testingLabels, alpha))
-
-
+# Return matrix L such that (trainingFaces*L)^T(trainingFaces*L) = I
 def whiten (trainingFaces):
-    # cov = np.dot(trainingFaces.T, trainingFaces)
-    """ 
-    Return matrix L such that (trainingFaces*L)^T(trainingFaces*L) = I
-    """
+
+    lam = 1e-3
+    cov = np.cov(trainingFaces.T) + lam * np.eye(trainingFaces.shape[1])
+
     # w - eigenvalues
-    # v - eigenvectors
-    # trainingFaces -= np.mean(trainingFaces, axis = 0)
-    # cov = np.dot(trainingFaces.T, trainingFaces) # / trainingFaces.shape[0]
-
-    # U,S,V = np.linalg.svd(cov)
-
-    # w = np.sqrt(S + 1e-5)
-    # v = U
-
-    v,w = np.linalg.eig(cov)
+    # v - eigenvectors    
+    w,v = np.linalg.eigh(cov)
 
     lamd = np.diag(np.float_power(w, (-0.5)))
     phi = v
 
     L = phi.dot(lamd)
     return L
-
-# Accesses the web camera, displays a window showing the face, and classifies smiles in real time
-# Requires OpenCV.
-def detectSmiles (w):
-    # Given the image captured from the web camera, classify the smile
-    def classifySmile (im, imGray, faceBox, w):
-        # Extract face patch as vector
-        face = imGray[faceBox[1]:faceBox[1]+faceBox[3], faceBox[0]:faceBox[0]+faceBox[2]]
-        face = cv2.resize(face, (24, 24))
-        face = (face - np.mean(face)) / np.std(face)  # Normalize
-        face = np.reshape(face, face.shape[0]*face.shape[1])
-
-        # Classify face patch
-        yhat = w.dot(face)
-        print yhat
-
-        # Draw result as colored rectangle
-        THICKNESS = 3
-        green = 128 + (yhat - 0.5) * 255
-        color = (0, green, 255 - green)
-        pt1 = (faceBox[0], faceBox[1])
-        pt2 = (faceBox[0]+faceBox[2], faceBox[1]+faceBox[3])
-        cv2.rectangle(im, pt1, pt2, color, THICKNESS)
-
-    # Starting video capture
-    vc = cv2.VideoCapture()
-    vc.open(0)
-    faceDetector = cv2.CascadeClassifier("haarcascade_frontalface_alt2.xml")
-    while vc.grab():
-        (tf,im) = vc.read()
-        im = cv2.resize(im, (im.shape[1]/2, im.shape[0]/2))  # Divide resolution by 2 for speed
-        imGray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        k = cv2.waitKey(30)
-        if k >= 0 and chr(k) == 'q':
-            print "quitting"
-            break
-
-        # Detect faces
-        faceBoxes = faceDetector.detectMultiScale(imGray)
-        for faceBox in faceBoxes:
-            classifySmile(im, imGray, faceBox, w)
-        cv2.imshow("WebCam", im)
-
-    cv2.destroyWindow("WebCam")
-    vc.release()
 
 if __name__ == "__main__":
     # Load data
@@ -188,37 +142,25 @@ if __name__ == "__main__":
         testingFaces = np.load("testingFaces.npy")
         testingLabels = np.load("testingLabels.npy")
 
-    w = 1e3 * np.random.choice(5, 576) 
-    # w = np.zeros(trainingFaces.shape[1])
-    # w = trainingFaces[4]
-    # print(w.shape)
-    # print(w)
-    print (check_grad(J_new, gradJ_new, w, trainingFaces, trainingLabels))
+    if(0):
 
+        # Whiten training data
+        transformedFaces = trainingFaces.dot(whiten(trainingFaces))
+        
+        # Confirm eigenvalues of covariance matrix almost all close to 1
+        cov = np.cov(transformedFaces.T)
+        w,v = np.linalg.eigh(cov)
+        print(w)
+        raw_input("Eigenvalues are almost all close to one.\nPress any key to continue.")
 
-    def func(x):
-        return x[0]**2 - 0.5 * x[1]**3
-    def grad(x):
-        return [2 * x[0], -1.5 * x[1]**2]
-    print(check_grad(func, grad, [0,0]))
-
-    # trainingFaces = trainingFaces.dot(whiten(trainingFaces))
+        # Run (unregularized) gradient descent on whitened data
+        gd_unreg(transformedFaces, trainingLabels)
     
-    # TODO Whiten trainingFaces, testingFaces before running gradient descent
+    # TODO Problem 3
     
-    # transformed = trainingFaces.dot(whiten(trainingFaces))
-    # cov2 = np.dot(transformed.T, transformed)
-
-    # w, v = np.linalg.eig(cov2)
-    # print (w)
-
-    # w1 = method1(trainingFaces, trainingLabels, testingFaces, testingLabels)
-    #w2 = method2(trainingFaces, trainingLabels, testingFaces, testingLabels)
-    # w3 = method3(trainingFaces, trainingLabels, testingFaces, testingLabels)
-
-    # for w in [ w1, w2, w3 ]:
-    # reportCosts(w1, trainingFaces, trainingLabels, testingFaces, testingLabels)
-    # reportCosts(w2, trainingFaces, trainingLabels, testingFaces, testingLabels)
-    # reportCosts(w3, trainingFaces, trainingLabels, testingFaces, testingLabels)
     
-    # detectSmiles(w3)  # Requires OpenCV
+    
+    w = np.random.choice(5, 576) 
+    
+    #print (check_grad(J_new, gradJ_new, w, trainingFaces, trainingLabels))
+    gd_reg(trainingFaces, trainingLabels)
