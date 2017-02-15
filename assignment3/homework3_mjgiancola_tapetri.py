@@ -1,7 +1,7 @@
 # NOTE -- please do NOT put your name(s) in the Python code; instead, name the Python file
 # itself to include your WPI username(s).
 
-import cv2  # Uncomment if you have OpenCV and want to run the real-time demo
+import sys
 import numpy as np
 from scipy.optimize import check_grad
 from sklearn.linear_model import LogisticRegression
@@ -16,7 +16,6 @@ def J (w, faces, labels, alpha = 0.):
     y_hats = w.dot(np.transpose(faces))
     y_actuals = labels
     residue = y_hats - y_actuals
-    print(residue)
     squared = np.square(residue)
     
     reg = 0.5*alpha * w.dot(w)
@@ -25,24 +24,18 @@ def J (w, faces, labels, alpha = 0.):
 
 # Original gradient (from Homework 2)
 def gradJ (w, faces, labels, alpha = 0.):
-    #     Gradient = x^T * (x*w - y)
-    gradient = faces.T.dot(faces.dot(w) - labels)
-
-    return gradient
+    return faces.T.dot(faces.dot(w) - labels)
 
 # Cross Entropy Loss Function
 def J_new (w, faces, labels, alpha = 0.):
     
-    #print(w.dot(np.transpose(faces)))
-    
     y_hats = sigmoid_array(w.dot(np.transpose(faces)))
-    # print (y_hats)
     y_actuals = labels
     m = y_hats.shape[0]
     ones = np.ones(y_actuals.shape)
 
     positives = y_actuals*np.log(y_hats) 
-    negatives = (ones - y_actuals)*np.log(ones-y_hats+1e-8)
+    negatives = (ones - y_actuals)*np.log(ones-y_hats)
 
     regul = 0.5*alpha*np.dot(w.T,w)
 
@@ -51,37 +44,20 @@ def J_new (w, faces, labels, alpha = 0.):
 # Gradient of Cross Entropy
 def gradJ_new (w, faces, labels, alpha = 0.):
 
-
     y_hats = sigmoid_array(w.dot(np.transpose(faces)))
-    # print("in gradJ_new: y_hats")
-    # print(y_hats)
     y_actuals = labels
-    # print("in gradJ_new: y_actuals")
-    # print(y_actuals)
+
     m = y_hats.shape[0]
-    # print("in gradJ_new: m")
-    # print(m)
     regul = alpha * w
-    # print("in gradJ_new: regul")
-    # print(regul)
-
-    # print("in gradJ_new: y_hats-y_actuals")
-    # print(np.transpose((y_hats - y_actuals)))
-
-    # print("in gradJ_new: faces")
-    # print(faces)
 
     result = 1.0/m * np.dot(faces.T, np.transpose((y_hats - y_actuals))) + regul
-    # result = -1.0/m * np.sum(y_actuals - y_hats)
-
-    # print("in gradJ_new: gradient")
-    # print(result.shape)
-    # print(result)
-
     return result
 
 # cost and gradient are function pointers for the loss function and respective gradient
-def gradientDescent (trainingFaces, trainingLabels, cost, gradient, alpha = 0.):
+# w is the starting weights
+# We parameterized learning_rate and tolerance because problems 2 and 3 respond better to different values
+# freq determines how often information will be printed (every freq iterations)
+def gradientDescent (trainingFaces, trainingLabels, cost, gradient, w, learning_rate, tolerance, freq, alpha = 0.):
 
     """
     Pick a random starting value for w in R^576 and a small learning rate
@@ -91,59 +67,45 @@ def gradientDescent (trainingFaces, trainingLabels, cost, gradient, alpha = 0.):
     tolerance (eg. delta = 0.001).
     """
 
-    # parameters for problem 3
-    learning_rate = 3e-3
-    tolerance = 1e-4
-
-    # parameters for problem 2
-    # learning_rate = 3e-5
-    # tolerance = 1e-3
-
-    #w = np.zeros(trainingFaces.shape[1])  # Or set to random vector
-    w = np.random.choice(5, 576) 
-
+    # Initialize starting values
     lastJ = np.inf
-    currentJ =  cost(w, trainingFaces, trainingLabels, alpha) 
+    currentJ = cost(w, trainingFaces, trainingLabels, alpha) 
     delta = lastJ - currentJ
-
     num_iter = 1
     
-    # print lastJ
-    # print currentJ
-    # print(w)
     while (delta > tolerance):
     
-        if (not (num_iter % 100)): 
-            print("%2d: J = %10f\t||w|| = %5f\tDelta = %5f" % ((num_iter, currentJ, np.linalg.norm(w), delta)))
+        # Problem 2 runs for ~80 iterations
+        # Problem 3 runs for ~19000 iterations
+        # This allows us to show every iteration for Problem 2,
+        # while only showing every 100 iterations for Problem 3
+        if (not (num_iter % freq)):
+            print("%4d: J = %10f\t||w|| = %5f\tDelta = %5f" % ((num_iter, currentJ, np.linalg.norm(w), delta)))
         
-    
+        # Update values
         lastJ = currentJ
         w = w - ( learning_rate * gradient(w, trainingFaces, trainingLabels) )
-
-        # print("-----")
-        # print(gradient(w, trainingFaces, trainingLabels))
-        # print(w)
-        # print("-----")
         currentJ = cost(w, trainingFaces, trainingLabels, alpha)
         delta = abs(lastJ - currentJ)
-
-        # print("new J")
-        # print(currentJ)
-        
         num_iter += 1
         
     return w
 
-# Unregularized Gradient Descent with Squared Error Cost Function
+# Gradient Descent with Squared Error Cost Function
 # (Problem 2)
-def gd_unreg (trainingFaces, trainingLabels):
-    return gradientDescent(trainingFaces, trainingLabels, J, gradJ)
+def gd_old(trainingFaces, trainingLabels):
+    w = np.zeros(trainingFaces.shape[1])
+    learning_rate = 3e-5
+    tolerance = 1e-3
+    return gradientDescent(trainingFaces, trainingLabels, J, gradJ, w, learning_rate, tolerance, 1)
 
-# Regularized Gradient Descent with Cross Entropy Loss Function
+# Gradient Descent with Cross Entropy Loss Function
 # (Problem 3)
-def gd_reg (trainingFaces, trainingLabels):
-    alpha = 0
-    return gradientDescent(trainingFaces, trainingLabels, J_new, gradJ_new, alpha)
+def gd_new(trainingFaces, trainingLabels):
+    w = np.random.randn(576) / 10
+    learning_rate = 0.25 # 2e-3
+    tolerance = 8e-7
+    return gradientDescent(trainingFaces, trainingLabels, J_new, gradJ_new, w, learning_rate, tolerance, 100)
 
 # Return matrix L such that (trainingFaces*L)^T(trainingFaces*L) = I
 def whiten (trainingFaces):
@@ -169,40 +131,41 @@ if __name__ == "__main__":
         testingFaces = np.load("testingFaces.npy")
         testingLabels = np.load("testingLabels.npy")
 
-    if(0):
+    print("#############")
+    print("# Problem 2 #")
+    print("#############")
 
-        # Whiten training data
-        transformedFaces = trainingFaces.dot(whiten(trainingFaces))
-        
-        # Confirm eigenvalues of covariance matrix almost all close to 1
-        cov = np.cov(transformedFaces.T)
-        w,v = np.linalg.eigh(cov)
-        print(w)
-        raw_input("Eigenvalues are almost all close to one.\nPress any key to continue.")
-
-        # Run (unregularized) gradient descent on whitened data
-        w_whiten = gd_unreg(transformedFaces, trainingLabels)
-        
-    # TODO Problem 3
+    # Whiten training data
+    transformedFaces = trainingFaces.dot(whiten(trainingFaces))
     
-    w = np.random.choice(5, 576) 
+    # Confirm eigenvalues of covariance matrix almost all close to 1
+    cov = np.cov(transformedFaces.T)
+    w,v = np.linalg.eigh(cov)
+    print(w)
+    raw_input("Eigenvalues are almost all close to one.\nPress any key to continue.")
+
+    # Run gradient descent on whitened data
+    w_whiten = gd_old(transformedFaces, trainingLabels)
+    raw_input("Press any key to continue...")
+        
+    print("#############")
+    print("# Problem 3 #")
+    print("#############")
     
-    print (check_grad(J_new, gradJ_new, w, trainingFaces, trainingLabels))
-    raw_input("Ideally that would have been really low...")
+    # Initialize weights randomly using Xavier Initialization
+    w = np.random.randn(576) / 24
+    sys.stdout.write("check_grad on randomly initialized w: ")
+    print(check_grad(J_new, gradJ_new, w, trainingFaces, trainingLabels))
+    raw_input("Press any key to continue...")
 
-    w_cross_entropy = gd_reg(trainingFaces, trainingLabels)
-    result_cross_entropy = J_new (w_cross_entropy, testingFaces, testingLabels, alpha = 0.)
-
+    # Run gradient descent with logistic sigmoid
+    w_cross_entropy = gd_new(trainingFaces, trainingLabels)
+    
+    # Run sklearn LogReg with no bias/regularization, determine optimal weights
     logreg = LogisticRegression(C=1e10, fit_intercept=False)
     logreg.fit(trainingFaces, trainingLabels)
-
     w_logreg = logreg.coef_[0]
 
-    result_logreg = J_new (w_logreg, testingFaces, testingLabels, alpha = 0.)
-
-    print("Logreg:")
-    print(result_logreg)
-    print("Cross Entropy:")
-    print(result_cross_entropy)
-
+    print("Cost using Sklearn LogReg : %f" % J_new(w_logreg, trainingFaces, trainingLabels))
+    print("Cross using Cross Entropy Loss: %f" % J_new(w_cross_entropy, trainingFaces, trainingLabels))
 
