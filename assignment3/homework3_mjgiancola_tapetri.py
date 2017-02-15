@@ -103,7 +103,7 @@ def gd_old(trainingFaces, trainingLabels):
 # (Problem 3)
 def gd_new(trainingFaces, trainingLabels):
     w = np.random.randn(576) / 10
-    learning_rate = 0.25 # 2e-3
+    learning_rate = 0.25
     tolerance = 8e-7
     return gradientDescent(trainingFaces, trainingLabels, J_new, gradJ_new, w, learning_rate, tolerance, 100)
 
