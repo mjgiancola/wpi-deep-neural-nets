@@ -93,7 +93,7 @@ def gradientDescent (trainingFaces, trainingLabels, cost, gradient, w, learning_
 
 # Gradient Descent with Squared Error Cost Function
 # (Problem 2)
-def gd_old(trainingFaces, trainingLabels):
+def method3(trainingFaces, trainingLabels):
     w = np.zeros(trainingFaces.shape[1])
     learning_rate = 3e-5
     tolerance = 1e-3
@@ -101,17 +101,17 @@ def gd_old(trainingFaces, trainingLabels):
 
 # Gradient Descent with Cross Entropy Loss Function
 # (Problem 3)
-def gd_new(trainingFaces, trainingLabels):
+def method4(trainingFaces, trainingLabels):
     w = np.random.randn(576) / 10
     learning_rate = 0.25
     tolerance = 8e-7
     return gradientDescent(trainingFaces, trainingLabels, J_new, gradJ_new, w, learning_rate, tolerance, 100)
 
-# Return matrix L such that (trainingFaces*L)^T(trainingFaces*L) = I
-def whiten (trainingFaces):
+# Return transformed matrix XL with L such that (faces*L)^T(faces*L) = I
+def whiten(faces):
 
     lam = 1e-3
-    cov = np.cov(trainingFaces.T) + lam * np.eye(trainingFaces.shape[1])
+    cov = np.cov(faces.T) + lam * np.eye(faces.shape[1])
 
     # w - eigenvalues
     # v - eigenvectors    
@@ -121,7 +121,7 @@ def whiten (trainingFaces):
     phi = v
 
     L = phi.dot(lamd)
-    return L
+    return faces.dot(L)
 
 if __name__ == "__main__":
     # Load data
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     print("#############")
 
     # Whiten training data
-    transformedFaces = trainingFaces.dot(whiten(trainingFaces))
+    transformedFaces = whiten(trainingFaces)
     
     # Confirm eigenvalues of covariance matrix almost all close to 1
     cov = np.cov(transformedFaces.T)
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     raw_input("Eigenvalues are almost all close to one.\nPress any key to continue.")
 
     # Run gradient descent on whitened data
-    w_whiten = gd_old(transformedFaces, trainingLabels)
+    w_whiten = method3(transformedFaces, trainingLabels)
     raw_input("Press any key to continue...")
         
     print("#############")
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     raw_input("Press any key to continue...")
 
     # Run gradient descent with logistic sigmoid
-    w_cross_entropy = gd_new(trainingFaces, trainingLabels)
+    w_cross_entropy = method4(trainingFaces, trainingLabels)
     
     # Run sklearn LogReg with no bias/regularization, determine optimal weights
     logreg = LogisticRegression(C=1e10, fit_intercept=False)
