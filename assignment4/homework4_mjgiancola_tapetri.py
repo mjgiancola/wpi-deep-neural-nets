@@ -6,6 +6,7 @@ import numpy as np
 from scipy.optimize import check_grad
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
 
 def accuracy(weights, data, labels):
 
@@ -14,6 +15,15 @@ def accuracy(weights, data, labels):
     m = len(labels)
     
     return sum( np.argmax(y_hats, axis=1) == labels ) / m
+
+def plot_weights_vectors(w):
+    
+    plt.figure(1)
+    for i in xrange(1,11):
+        plt.subplot(1,10,i)
+        plt.imshow(w.T[i-1].reshape((28,28)), cmap='gray')
+        plt.axis('off')
+    plt.show()
 
 def soft_max(x):
     e = np.exp(x)
@@ -75,7 +85,7 @@ if __name__ == "__main__":
     
     W = np.zeros((784,10))
 
-    w_result = gradientDescent(trainingDigits, trainingLabels, W, 0.5, 200)
-
+    w_result = gradientDescent(trainingDigits, trainingLabels, W, 0.5, 300)
+    plot_weights_vectors(w_result)
     exit()
 
