@@ -29,7 +29,7 @@ def J (W, digits, labels):
     y_hats = soft_max(np.dot(digits, W)) # 55000 * 10
     y_actuals = labels # 55000 * 10
 
-    result = -1.0/m * np.sum(np.dot(y_actuals.T, np.log(y_hats))) # 10 * 10
+    result = -1.0/m * np.sum(np.multiply(y_actuals, np.log(y_hats))) # 10 * 10
 
     return result
 
@@ -73,20 +73,7 @@ if __name__ == "__main__":
     testingDigits = np.load("mnist_test_images.npy")
     testingLabels = np.load("mnist_test_labels.npy")
     
-
-    # print(trainingDigits.shape)
-    print(trainingLabels.shape)
-    # print(testingDigits.shape)
-    # print(testingLabels.shape)
-    exit()
-    # W = np.random.randn(784, 10) / 10
     W = np.zeros((784,10))
-
-    print("J")
-    print(J(W, trainingDigits, trainingLabels))
-    
-    print("gradJ")
-    print(gradJ(W, trainingDigits, trainingLabels))
 
     w_result = gradientDescent(trainingDigits, trainingLabels, W, 0.5, 200)
 
