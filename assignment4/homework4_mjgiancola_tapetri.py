@@ -1,6 +1,3 @@
-# NOTE -- please do NOT put your name(s) in the Python code; instead, name the Python file
-# itself to include your WPI username(s).
-
 import sys
 import numpy as np
 from scipy.optimize import check_grad
@@ -8,13 +5,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 
-def accuracy(weights, data, labels):
+def accuracy(weights, digits, labels):
 
     y_hats = soft_max(np.dot(digits, weights))
     y_actuals = labels
-    m = len(labels)
     
-    return sum( np.argmax(y_hats, axis=1) == labels ) / m
+    return np.mean(np.argmax(y_hats, axis=1) == np.argmax(y_actuals, axis=1))
 
 def plot_weights_vectors(w):
     
@@ -39,7 +35,7 @@ def J (W, digits, labels):
     y_hats = soft_max(np.dot(digits, W)) # 55000 * 10
     y_actuals = labels # 55000 * 10
 
-    result = -1.0/m * np.sum(np.multiply(y_actuals, np.log(y_hats))) # 10 * 10
+    result = -1.0/m * np.sum(np.multiply(y_actuals, np.log(y_hats)))
 
     return result
 
@@ -77,15 +73,21 @@ def gradientDescent (trainingData, trainingLabels, w, learning_rate, max_iter):
     return w
 
 if __name__ == "__main__":
+   
     # Load data
     trainingDigits = np.load("mnist_train_images.npy")
     trainingLabels = np.load("mnist_train_labels.npy")
     testingDigits = np.load("mnist_test_images.npy")
     testingLabels = np.load("mnist_test_labels.npy")
     
+    # Initialize weight vector with all zeros
     W = np.zeros((784,10))
 
-    w_result = gradientDescent(trainingDigits, trainingLabels, W, 0.5, 300)
-    plot_weights_vectors(w_result)
-    exit()
+    # Run gradient descent with learning_rate=0.5, num_iter=325
+    W = gradientDescent(trainingDigits, trainingLabels, W, 0.5, 325)
+    
+    print "Loss on Test Set: " + str(J(W, testingDigits, testingLabels))
+    print "Accuracy on Test Set: " + str(accuracy(W, testingDigits, testingLabels))
+
+    plot_weights_vectors(W)
 
