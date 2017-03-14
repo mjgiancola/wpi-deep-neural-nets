@@ -102,21 +102,35 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
   Trains a 3-layer NN with the given hyper parameters and return the weights W1, W2, b1, b2 when done learning.
   """
 
+  # Split into batches (TODO: shuffle?)
+  num_of_batches = trainingData.shape[0] / batch_size
+  batches = zip(
+    np.array_split(trainingData, nb_of_batches, axis=0),  # digits
+    np.array_split(trainigLabels, nb_of_batches, axis=0))  # labels
+
   # Initialize weight vectors
   (W1, W2, b1, b2) = initialize_weights(hidden_units)
-
-  # Initialize starting values
-  lastJ = np.inf
-  currentJ = J(W1, W2, b1, b2, trainingDigits, trainingLabels)
-  delta = lastJ - currentJ
   
-  for epoch in range(1, num_epochs):
-    print 1
-    # Extract new batch from data / Loop over all batches once?
+  for i in range(1, num_epochs):
+    
+    # Extract new batch from data
+    for (batch_data, batch_labels) in batches:
 
-    # Compute J using feedforward
+      # Forward propagation
+      z1, h1, z2, y_hats = feedforward(batch_data, W1, W2, b1, b2)
 
-    # Update weights using backprop values * learning rate
+      # Backward propagation
+      dW1, dW2, db1, db2 = backprop(batch_data, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2)
+
+      # Update weights (TODO: Add regularization)
+      W1 = W1 - learn_rate * dW1
+      W2 = W2 - learn_rate * dW2
+      b1 = b1 - learn_rate * db1
+      b2 = b2 - learn_rate * db2
+
+    # print info
+    if i % 10 == 0:
+      print("Current J: " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
 
   return W1, W2, b1, b2
 
@@ -129,12 +143,12 @@ def initialize_weights(hidden_units = 30):
   w1_abs = 1.0 / np.sqrt(784)
   w2_abs = 1.0 / np.sqrt(30)
 
-  W_1 =  np.random.uniform(-w1_abs,w1_abs,[784, hidden_units]) # 784 x hidden_units
-  W_2 = np.random.uniform(-w2_abs,w2_abs,[hidden_units, 10]) # hidden_units x 10
-  b_1 = 0.01 * np.ones((hidden_units,1)) # hidden_units x 1
-  b_2 = 0.01 * np.ones((10,1)) # 10 x 1
+  W1 =  np.random.uniform(-w1_abs,w1_abs,[784, hidden_units]) # 784 x hidden_units
+  W2 = np.random.uniform(-w2_abs,w2_abs,[hidden_units, 10]) # hidden_units x 10
+  b1 = 0.01 * np.ones((hidden_units,1)) # hidden_units x 1
+  b2 = 0.01 * np.ones((10,1)) # 10 x 1
 
-  return W_1, W_2, b_1, b_2
+  return W1, W2, b1, b2
 
 if __name__ == "__main__":
    
@@ -159,14 +173,14 @@ if __name__ == "__main__":
   # Report final accuracy on test set
 
   # Initialize weight vectors
-  (W_1, W_2, b_1, b_2) = initialize_weights()
+  (W1, W2, b1, b2) = initialize_weights()
 
-  print("Initial cost for initialized weights, J = " + str(J(W_1, W_2, b_1, b_2, trainingDigits, trainingLabels)))
+  print("Initial cost for initialized weights, J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
 
   # TODO Use check_grad to confirm gradient functions work
 
   # NOTE: NEW ACCURACY FUNCTION
-  # print accuracy(testingDigits, testingLabels, W_1, W_2, b_1, b_2)
+  # print accuracy(testingDigits, testingLabels, W1, W2, b1, b2)
 
   # Run gradient descent with learning_rate=0.5, num_iter=325
   # W = gradientDescent(trainingDigits, trainingLabels, W, 0.5, 325)
