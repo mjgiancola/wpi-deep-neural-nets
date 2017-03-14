@@ -72,33 +72,26 @@ def feed_forward(batch, W1, W2, b1, b2):
 def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   """
   Runs backpropagation through the network and returns the gradients for 
-  J with respect to W1, b1, W2, and b2.
+  J with respect to W1, W2, b1, and b2.
   """
 
   y_actuals = batch_labels
 
   dJdz2 = (y_hats - y_actuals)
-
-  ####### dW1 #######
-
   dJdh1 = np.dot(dJdz2, W2)
 
+  # Equivalently, dJ/dz1
   g = (dJdh1 * relu_prime(z1)).T
 
   # Compute outer product
   dW1 = np.dot(g, batch.T)
-
-  ###################
-
-  ####### dW2 #######
-
   dW2 = np.dot(dJdz2, h1)
 
-  ###################
+  # Gradient is dJ/dz1 * dz1/db1, which is just 1
+  db1 = np.dot(g, np.fill_diagonal(np.zeros((h1.shape[1], h1.shape[1])), 1))
 
-  # TODO Fix
-  db1 = 0
-  db2 = 0
+  # Similarly, gradient is dJ/dz2 * dz2/db2, which is also 1
+  db2 = np.dot(dJdz2, np.fill_diagonal(np.zeros((b2.shape[0], b2.shape[0])), 1))
 
   return dW1, dW2, db1, db2
   
