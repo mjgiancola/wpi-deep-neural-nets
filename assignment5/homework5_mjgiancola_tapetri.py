@@ -38,15 +38,15 @@ def feed_forward(W1, b1, W2, b2, digits):
   # W1 is 784 * 30
   # z1 should be num_instances * 30
 
-  # 55000 * 10
+  # 55000 * 30
   z1_no_bias = np.dot(digits, W1)
-  z1 =  z1_no_bias + b1
+  z1 =  z1_no_bias + b1.T
   h1 = relu(z1)
 
-  # 55000 * ? (10 I think)
+  # 55000 * 10 
   z2_no_bias = np.dot(h1, W2)
-  z2 = z2_no_bias + b1
-  y_hats = softmax(z2)
+  z2 = z2_no_bias + b2.T
+  y_hats = soft_max(z2)
 
   return y_hats
 
