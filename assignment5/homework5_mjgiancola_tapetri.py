@@ -1,8 +1,6 @@
 import sys
 import numpy as np
 from scipy.optimize import check_grad
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt
 
 # TODO Update
@@ -23,7 +21,7 @@ def plot_weights_vectors(w):
   plt.show()
 
 def relu(x):
-  return [max(0, elt) for elt in x]
+  return np.maximum(x, 0)
 
 def relu_prime(x):
   return [1 if elt > 0 else 0 for elt in x]
@@ -36,12 +34,18 @@ def soft_max(x):
 # Computes y_hats for current weights/biases
 def feed_forward(W1, b1, W2, b2, digits):
 
+  # digits is num_instances (varies) * 784
+  # W1 is 784 * 30
+  # z1 should be num_instances * 30
+
   # 55000 * 10
-  z1 = np.dot(digits, W1) + b1
+  z1_no_bias = np.dot(digits, W1)
+  z1 =  z1_no_bias + b1
   h1 = relu(z1)
 
   # 55000 * ? (10 I think)
-  z2 = np.dot(h1, W2) + b2
+  z2_no_bias = np.dot(h1, W2)
+  z2 = z2_no_bias + b1
   y_hats = softmax(z2)
 
   return y_hats
@@ -53,7 +57,7 @@ def J (W1, b1, W2, b2, digits, labels):
   m = digits.shape[0]
 
   # 55000 * 10
-  y_hats = feed_forward(W1, b1, W2, b2)
+  y_hats = feed_forward(W1, b1, W2, b2, digits)
   y_actuals = labels
 
   result = -1.0/m * np.sum(np.multiply(y_actuals, np.log(y_hats)))
@@ -144,12 +148,13 @@ if __name__ == "__main__":
     b_2 = 0.01 * np.ones((10,1)) # 10 x 1
 
 
+    print("Initial cost for initialized weights" + str(J(W_1, b_1, W_2, b_2, trainingDigits, trainingLabels)))
 
     # Run gradient descent with learning_rate=0.5, num_iter=325
-    W = gradientDescent(trainingDigits, trainingLabels, W, 0.5, 325)
+    # W = gradientDescent(trainingDigits, trainingLabels, W, 0.5, 325)
     
-    print "Loss on Test Set: " + str(J(W, testingDigits, testingLabels))
-    print "Accuracy on Test Set: " + str(accuracy(W, testingDigits, testingLabels))
+    # print "Loss on Test Set: " + str(J(W, testingDigits, testingLabels))
+    # print "Accuracy on Test Set: " + str(accuracy(W, testingDigits, testingLabels))
 
-    plot_weights_vectors(W)
+    # plot_weights_vectors(W)
 
