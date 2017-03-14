@@ -105,19 +105,19 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
   # Split into batches (TODO: shuffle?)
   num_of_batches = trainingData.shape[0] / batch_size
   batches = zip(
-    np.array_split(trainingData, nb_of_batches, axis=0),  # digits
-    np.array_split(trainigLabels, nb_of_batches, axis=0))  # labels
+    np.array_split(trainingData, num_of_batches, axis=0),  # digits
+    np.array_split(trainingLabels, num_of_batches, axis=0))  # labels
 
   # Initialize weight vectors
   (W1, W2, b1, b2) = initialize_weights(hidden_units)
   
-  for i in range(1, num_epochs):
+  for i in range(0, num_epochs):
     
     # Extract new batch from data
     for (batch_data, batch_labels) in batches:
 
       # Forward propagation
-      z1, h1, z2, y_hats = feedforward(batch_data, W1, W2, b1, b2)
+      z1, h1, z2, y_hats = feed_forward(batch_data, W1, W2, b1, b2)
 
       # Backward propagation
       dW1, dW2, db1, db2 = backprop(batch_data, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2)
@@ -129,8 +129,8 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
       b2 = b2 - learn_rate * db2
 
     # print info
-    if i % 10 == 0:
-      print("Current J: " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
+    #if i % 1 == 0:
+    print("Current J: " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
 
   return W1, W2, b1, b2
 
@@ -177,6 +177,8 @@ if __name__ == "__main__":
 
   print("Initial cost for initialized weights, J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
 
+  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, 30, 0.01, 64, 1, 0)
+  print "done"
   # TODO Use check_grad to confirm gradient functions work
 
   # NOTE: NEW ACCURACY FUNCTION
