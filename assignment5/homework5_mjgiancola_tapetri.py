@@ -27,20 +27,10 @@ def relu_prime(x):
   return [1 if elt > 0 else 0 for elt in x]
 
 def soft_max(x):
-    """Compute softmax values for each sets of scores in x."""
-    # Max values for each row
     row_max = np.max(x, axis = 1,keepdims=True)
-    print( "row_max")
-    print(row_max)
-    # print("Row max shape: " + str(row_max.shape))
     max_removed = x - row_max
-    print( "max_removed")
-    print(max_removed)
-
     e_x = np.exp(max_removed)
-    print("e x")
-    print (e_x)
-    return e_x / e_x.sum(axis = 1, keepdims=True)# only difference
+    return e_x / e_x.sum(axis = 1, keepdims=True) 
 
 # Computes y_hats for current weights/biases
 def feed_forward(W1, b1, W2, b2, digits):
@@ -57,12 +47,7 @@ def feed_forward(W1, b1, W2, b2, digits):
   # 55000 * 10 
   z2_no_bias = np.dot(h1, W2)
   z2 = z2_no_bias + b2.T
-  print ("size of z2 = " + str (z2.shape))
-  print (z2)
   y_hats = soft_max(z2)
-
-  print ("size of y_hats = " + str (y_hats.shape))
-  print (y_hats)
   return y_hats
 
 def J (W1, b1, W2, b2, digits, labels):
@@ -121,8 +106,8 @@ def SGD (trainingData, trainingLabels, w, learning_rate, num_epochs):
 
 def initialize_weights(hidden_units = 30):
 
-    w1_abs = 1.0 / sqrt(784)
-    w2_abs = 1.0 / sqrt(30)
+    w1_abs = 1.0 / np.sqrt(784)
+    w2_abs = 1.0 / np.sqrt(30)
 
     W_1 =  np.random.uniform(-w1_abs,w1_abs,[784, hidden_units]) # 784 x hidden_units
     W_2 = np.random.uniform(-w2_abs,w2_abs,[hidden_units, 10]) # hidden_units x 10
@@ -154,13 +139,10 @@ if __name__ == "__main__":
     #    * validate NN on validation set
     # Report final accuracy on test set
 
-    hidden_units = 30
+    hidden_units = 30 # default for now
 
-    # Initialize weight vectors with all zeros
-    W_1 =  np.random.uniform(5,10,[784, 30]) # 784 x hidden_units
-    W_2 = np.random.uniform(5,10,[30, 10]) # hidden_units x 10
-    b_1 = 0.01 * np.ones((30,1)) # hidden_units x 1
-    b_2 = 0.01 * np.ones((10,1)) # 10 x 1
+    # Initialize weight vectors
+    (W_1, W_2, b_1, b_2) = initialize_weights(hidden_units)
 
 
     print("Initial cost for initialized weights" + str(J(W_1, b_1, W_2, b_2, trainingDigits, trainingLabels)))
