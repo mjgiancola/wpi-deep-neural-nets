@@ -27,9 +27,20 @@ def relu_prime(x):
   return [1 if elt > 0 else 0 for elt in x]
 
 def soft_max(x):
-  e = np.exp(x)
-  result = e / e.sum(axis = 1)[:, None]
-  return result
+    """Compute softmax values for each sets of scores in x."""
+    # Max values for each row
+    row_max = np.max(x, axis = 1,keepdims=True)
+    print( "row_max")
+    print(row_max)
+    # print("Row max shape: " + str(row_max.shape))
+    max_removed = x - row_max
+    print( "max_removed")
+    print(max_removed)
+
+    e_x = np.exp(max_removed)
+    print("e x")
+    print (e_x)
+    return e_x / e_x.sum(axis = 1, keepdims=True)# only difference
 
 # Computes y_hats for current weights/biases
 def feed_forward(W1, b1, W2, b2, digits):
@@ -46,8 +57,12 @@ def feed_forward(W1, b1, W2, b2, digits):
   # 55000 * 10 
   z2_no_bias = np.dot(h1, W2)
   z2 = z2_no_bias + b2.T
+  print ("size of z2 = " + str (z2.shape))
+  print (z2)
   y_hats = soft_max(z2)
 
+  print ("size of y_hats = " + str (y_hats.shape))
+  print (y_hats)
   return y_hats
 
 def J (W1, b1, W2, b2, digits, labels):
