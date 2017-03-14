@@ -100,6 +100,18 @@ def SGD (trainingData, trainingLabels, w, learning_rate, num_epochs):
         
     return w
 
+def initialize_weights(hidden_units = 30):
+
+    w1_abs = 1.0 / sqrt(784)
+    w2_abs = 1.0 / sqrt(30)
+
+    W_1 =  np.random.uniform(-w1_abs,w1_abs,[784, hidden_units]) # 784 x hidden_units
+    W_2 = np.random.uniform(-w2_abs,w2_abs,[hidden_units, 10]) # hidden_units x 10
+    b_1 = 0.01 * np.ones((hidden_units,1)) # hidden_units x 1
+    b_2 = 0.01 * np.ones((10,1)) # 10 x 1
+
+    return W_1, W_2, b_1, b_2
+
 if __name__ == "__main__":
    
     # Load data
@@ -110,8 +122,28 @@ if __name__ == "__main__":
     testingDigits = np.load("mnist_test_images.npy")
     testingLabels = np.load("mnist_test_labels.npy")
     
-    # Initialize weight vector with all zeros
-    W = np.zeros((784,10))
+
+    # Hyper parameters
+    num_hidden_units = [30,40,50]
+    learning_rate = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
+    minibatch_size = [16, 32, 64, 128, 256]
+    num_epochs = [100,1000,10000] # ?
+    reg_strength = [0.01, 0.1, 0.2, 0.5]
+
+    # For each set of hyper param settings
+    #    * train NN on training set
+    #    * validate NN on validation set
+    # Report final accuracy on test set
+
+    hidden_units = 30
+
+    # Initialize weight vectors with all zeros
+    W_1 =  np.random.uniform(5,10,[784, 30]) # 784 x hidden_units
+    W_2 = np.random.uniform(5,10,[30, 10]) # hidden_units x 10
+    b_1 = 0.01 * np.ones((30,1)) # hidden_units x 1
+    b_2 = 0.01 * np.ones((10,1)) # 10 x 1
+
+
 
     # Run gradient descent with learning_rate=0.5, num_iter=325
     W = gradientDescent(trainingDigits, trainingLabels, W, 0.5, 325)
