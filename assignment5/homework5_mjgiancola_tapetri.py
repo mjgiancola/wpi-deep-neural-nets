@@ -23,6 +23,7 @@ def plot_weights_vectors(w):
 def relu(x):
   return np.maximum(x, 0)
 
+# TODO: Use numpy to optimize
 def relu_prime(x):
   return [1 if elt > 0 else 0 for elt in x]
 
@@ -32,23 +33,7 @@ def soft_max(x):
     e_x = np.exp(max_removed)
     return e_x / e_x.sum(axis = 1, keepdims=True) 
 
-# Computes y_hats for current weights/biases
-def feed_forward(W1, b1, W2, b2, digits):
-
-  # digits is num_instances (varies) * 784
-  # W1 is 784 * 30
-  # z1 should be num_instances * 30
-
-  # 55000 * 30
-  z1_no_bias = np.dot(digits, W1)
-  z1 =  z1_no_bias + b1.T
-  h1 = relu(z1)
-
-  # 55000 * 10 
-  z2_no_bias = np.dot(h1, W2)
-  z2 = z2_no_bias + b2.T
-  y_hats = soft_max(z2)
-  return y_hats
+return z1, h1, z2, y_hats
 
 def J (W1, b1, W2, b2, digits, labels):
 
@@ -64,45 +49,72 @@ def J (W1, b1, W2, b2, digits, labels):
 
   return result
 
-# TODO Fix
-def gradJW1 (W1, b1, W2, b2, digits, labels):
+def feed_forward(batch, W1, b1, W2, b2):
+  """
+  Runs the given batch through the network defined by the given weights
+  and return the intermediate values z1, h1, z2 as well as the final y_hats
+  """
 
-  x = digits
+  # digits is num_instances (varies) * 784
+  # W1 is 784 * 30
+  # z1 should be num_instances * 30
+
+  # 55000 * 30
+  z1_no_bias = np.dot(digits, W1)
+  z1 =  z1_no_bias + b1.T
+  h1 = relu(z1)
+
+  # 55000 * 10 
+  z2_no_bias = np.dot(h1, W2)
+  z2 = z2_no_bias + b2.T
+  y_hats = soft_max(z2)
+
+# TODO: db1, dW2, db2, change intermediate value names a, b
+def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, b1, W2, b2):
+  """
+  Runs backpropagation through the network and returns the gradients for 
+  J with respect to W1, b1, W2, and b2.
+  """
 
   # 55000 * 10
-  y_hats = feed_forward(W1, b2, W2, b2)
-  y_actuals = labels
-  a = np.dot((y_hats - y_actuals), W2)
+  a = np.dot((y_hats - batch_labels), W2)
 
-  z1 = np.dot(digits, W1) + b1
+  z1 = np.dot(batch, W1) + b1
   b = relu_prime(z1)
 
   g = (a * b).T
 
   # Compute outer product
-  result =  np.dot(g, x.T)
+  dW1 =  np.dot(g, batch.T)
 
-  return result
+  return dW1, db1, dW2, db2
+  
 
-# TODO Make stochastic
-def SGD (trainingData, trainingLabels, w, learning_rate, num_epochs):
+# TODO:
+def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num_epochs, reg_strength):
+  """
+  Trains a 3-layer NN with the given hyper parameters and return the weights W1, b1, W2, b2 when done learning.
+  """
+
+    # Initialize weight vectors
+    (W1, W2, b1, b2) = initialize_weights(hidden_units)
 
     # Initialize starting values
     lastJ = np.inf
-    currentJ = J(w, trainingData, trainingLabels) 
+    currentJ = J(W1, b1, W2, b2, trainingDigits, trainingLabels)
     delta = lastJ - currentJ
     
-    for num_iter in range(1, num_epochs):
+    for epoch in range(1, num_epochs):
 
-        print("%4d: J = %10f\t||w|| = %5f\tDelta = %5f" % ((num_iter, currentJ, np.linalg.norm(w), delta)))
-        
-        # Update values
-        lastJ = currentJ
-        w = w - ( learning_rate * gradJ(w, trainingData, trainingLabels) )
-        currentJ = J(w, trainingData, trainingLabels)
-        delta = abs(lastJ - currentJ)
-        
-    return w
+      # Extract new batch from data / Loop over all batches once?
+
+      # Compute J using feedforward
+
+      # Update weights using backprop values * learning rate
+
+
+    return W1, b1, W2, b2
+
 
 def initialize_weights(hidden_units = 30):
 
@@ -144,8 +156,7 @@ if __name__ == "__main__":
     # Initialize weight vectors
     (W_1, W_2, b_1, b_2) = initialize_weights(hidden_units)
 
-
-    print("Initial cost for initialized weights" + str(J(W_1, b_1, W_2, b_2, trainingDigits, trainingLabels)))
+    print("Initial cost for initialized weights, J = " + str(J(W_1, b_1, W_2, b_2, trainingDigits, trainingLabels)))
 
     # Run gradient descent with learning_rate=0.5, num_iter=325
     # W = gradientDescent(trainingDigits, trainingLabels, W, 0.5, 325)
