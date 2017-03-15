@@ -3,6 +3,36 @@ import numpy as np
 from scipy.optimize import check_grad
 import matplotlib.pyplot as plt
 
+# Compresses weights into 1D weight vector
+def pack(W1, W2, b1, b2):
+  W1 = np.ravel(W1)
+  W2 = np.ravel(W2)
+  b1 = b1.flatten()
+  b2 = b2.flatten()
+
+  result = np.hstack((W1, W2, b1, b2))
+
+  return result
+
+# Splits 1D weight vector into component weights
+def unpack(w, hidden_units):
+  a = 784 * hidden_units
+  b = a + 300
+  c = b + 30
+  d = c + 10
+
+  W1 = w[:a]
+  W2 = w[a:b]
+  b1 = w[b:c]
+  b2 = w[c:d]
+
+  W1 = np.reshape(W1, (784, hidden_units))
+  W2 = np.reshape(W2, (hidden_units, 10))
+  b1 = np.reshape(b1, (hidden_units, 1))
+  b2 = np.reshape(b2, (10, 1))
+
+  return W1, W2, b1, b2
+
 def accuracy(weights, digits, labels):
 
   _, _, _, y_hats = feed_forward(digits, W1, W2, b1, b2)
@@ -33,6 +63,11 @@ def soft_max(x):
     e_x = np.exp(max_removed)
     return e_x / e_x.sum(axis = 1, keepdims=True) 
 
+# For confirming gradient with check_grad
+def _J(w, digits, labels):
+  W1, W2, b1, b2 = unpack(w, 30)
+  return J(W1, W2, b1, b2, digits, labels)
+
 def J (W1, W2, b1, b2, digits, labels):
 
   m = digits.shape[0]
@@ -54,16 +89,16 @@ def feed_forward(batch, W1, W2, b1, b2):
   # W1 is 784 * num_hidden_units (varies)
   # z1 (and h1) should be num_instances * num_hidden_units
 
-  z1_no_bias = np.dot(batch, W1)
-  z1 =  z1_no_bias + b1.T
+  z1_no_bias = np.dot(W1.T, batch)
+  z1 =  z1_no_bias + b1
   h1 = relu(z1)
 
   # h1 is num_instances * num_hidden_units
   # W2 is num_hidden_units * 10
   # z2 (and y_hats) should be num_instances * 10
 
-  z2_no_bias = np.dot(h1, W2)
-  z2 = z2_no_bias + b2.T
+  z2_no_bias = np.dot(W2.T, h1)
+  z2 = z2_no_bias + b2
   y_hats = soft_max(z2)
 
   return z1, h1, z2, y_hats
@@ -75,20 +110,23 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   J with respect to W1, W2, b1, and b2.
   """
 
-  y_actuals = batch_labels
+  y_actuals = np.reshape(batch_labels, (10, 1)) #TODO Fix for multiple instanecs, use batch_labels.shape[1]
 
   dJdz2 = (y_hats - y_actuals)
-  dJdh1 = np.dot(dJdz2, W2)
+  dJdh1 = np.dot(dJdz2.T, W2.T)
 
   # Equivalently, dJ/dz1
   g = (dJdh1 * relu_prime(z1)).T
 
   # Compute outer product
-  dW1 = np.dot(g, batch.T)
-  dW2 = np.dot(dJdz2, h1)
+  dW1 = np.outer(g, batch.T)
+  dW2 = np.dot(dJdz2, h1.T)
 
   # Gradient is dJ/dz1 * dz1/db1, which is just 1
-  db1 = np.dot(g, np.fill_diagonal(np.zeros((h1.shape[1], h1.shape[1])), 1))
+  print"ss3"
+  print h1.shape[1]
+  tmp = np.fill_diagonal(np.zeros(h1.shape[1], h1.shape[1]), 1)
+  db1 = np.dot(g, tmp)
 
   # Similarly, gradient is dJ/dz2 * dz2/db2, which is also 1
   db2 = np.dot(dJdz2, np.fill_diagonal(np.zeros((b2.shape[0], b2.shape[0])), 1))
@@ -134,6 +172,16 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
 
   return W1, W2, b1, b2
 
+def gradJ(w, batch_data, batch_labels):
+  W1, W2, b1, b2 = unpack(w, 30)
+
+  # Forward propagation
+  z1, h1, z2, y_hats = feed_forward(batch_data, W1, W2, b1, b2)
+
+  # Backward propagation
+  dW1, dW2, db1, db2 = backprop(batch_data, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2)
+
+  return pack(dW1, dW2, db1, db2)
 
 def initialize_weights(hidden_units = 30):
   """
@@ -175,9 +223,16 @@ if __name__ == "__main__":
   # Initialize weight vectors
   (W1, W2, b1, b2) = initialize_weights()
 
-  print("Initial cost for initialized weights, J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
+  #print("Initial cost for initialized weights, J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
 
-  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, 30, 0.01, 64, 1, 0)
+  w = pack(W1, W2, b1, b2)
+
+  grad_batch = trainingDigits[0].reshape((784,1))
+  grad_label = trainingLabels[0]
+  
+  print check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w)
+
+  #W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, 30, 0.01, 64, 1, 0)
   print "done"
   # TODO Use check_grad to confirm gradient functions work
 
