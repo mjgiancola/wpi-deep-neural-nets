@@ -89,16 +89,21 @@ def feed_forward(batch, W1, W2, b1, b2):
   # W1 is 784 * num_hidden_units (varies)
   # z1 (and h1) should be num_instances * num_hidden_units
 
-  z1_no_bias = np.dot(W1.T, batch)
-  z1 =  z1_no_bias + b1
+  # print("Dimensions of W1 = " + str(W1.shape))
+  # print("Dimensions of W2 = " + str(W2.shape))
+  # print("Dimensions of b1 = " + str(b1.shape))
+  # print("Dimensions of b2 = " + str(b2.shape))
+
+  z1_no_bias = np.dot(batch, W1.T)
+  z1 =  z1_no_bias + b1.T
   h1 = relu(z1)
 
   # h1 is num_instances * num_hidden_units
   # W2 is num_hidden_units * 10
   # z2 (and y_hats) should be num_instances * 10
 
-  z2_no_bias = np.dot(W2.T, h1)
-  z2 = z2_no_bias + b2
+  z2_no_bias = np.dot(h1, W2.T)
+  z2 = z2_no_bias + b2.T
   y_hats = soft_max(z2)
 
   return z1, h1, z2, y_hats
@@ -110,26 +115,42 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   J with respect to W1, W2, b1, and b2.
   """
 
-  y_actuals = np.reshape(batch_labels, (10, 1)) #TODO Fix for multiple instanecs, use batch_labels.shape[1]
+  y_actuals = batch_labels # np.reshape(batch_labels, (10, 1)) #TODO Fix for multiple instanecs, use batch_labels.shape[1]
 
   dJdz2 = (y_hats - y_actuals)
-  dJdh1 = np.dot(dJdz2.T, W2.T)
+  dJdh1 = np.dot(dJdz2, W2)
 
   # Equivalently, dJ/dz1
-  g = (dJdh1 * relu_prime(z1)).T
+  g = dJdh1 * relu_prime(z1)
 
   # Compute outer product
   dW1 = np.outer(g, batch.T)
-  dW2 = np.dot(dJdz2, h1.T)
+  dW2 = np.outer(dJdz2, h1.T)
+
+  # print ("Dimension of dW1 = " + str(dW1.shape))
+  # print ("Dimension of dW2 = " + str(dW2.shape))
 
   # Gradient is dJ/dz1 * dz1/db1, which is just 1
-  print"ss3"
-  print h1.shape[1]
-  tmp = np.fill_diagonal(np.zeros(h1.shape[1], h1.shape[1]), 1)
-  db1 = np.dot(g, tmp)
+  # print"ss3"
+  # tmp = np.fill_diagonal(np.zeros(h1.shape[1], h1.shape[1]), 1)
+  db1 = np.dot(g, np.identity(b1.size)).T
 
   # Similarly, gradient is dJ/dz2 * dz2/db2, which is also 1
-  db2 = np.dot(dJdz2, np.fill_diagonal(np.zeros((b2.shape[0], b2.shape[0])), 1))
+  # tmp2 = np.fill_diagonal(np.zeros((b2.shape[0], b2.shape[0])), 1)
+  db2 = np.dot(dJdz2, np.identity(b2.size)).T
+
+  # print ("Dimension of db1 = " + str(db1.shape))
+  # print ("Dimension of db2 = " + str(db2.shape))
+
+  # print("Dimensions of W1 = " + str(W1.shape))
+  # print("Dimensions of W2 = " + str(W2.shape))
+  # print("Dimensions of b1 = " + str(b1.shape))
+  # print("Dimensions of b2 = " + str(b2.shape))
+  # print("Dimensions of dW1 = " + str(dW1.shape))
+  # print("Dimensions of dW2 = " + str(dW2.shape))
+  # print("Dimensions of db1 = " + str(db1.shape))
+  # print("Dimensions of db2 = " + str(db2.shape))
+
 
   return dW1, dW2, db1, db2
   
@@ -154,11 +175,24 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
     # Extract new batch from data
     for (batch_data, batch_labels) in batches:
 
+      print("Current J: " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
+
       # Forward propagation
       z1, h1, z2, y_hats = feed_forward(batch_data, W1, W2, b1, b2)
 
       # Backward propagation
       dW1, dW2, db1, db2 = backprop(batch_data, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2)
+
+      if 0:
+        print("Before update, " + str(i))
+        print("Dimensions of W1 = " + str(W1.shape))
+        print("Dimensions of W2 = " + str(W2.shape))
+        print("Dimensions of b1 = " + str(b1.shape))
+        print("Dimensions of b2 = " + str(b2.shape))
+        print("Dimensions of dW1 = " + str(dW1.shape))
+        print("Dimensions of dW2 = " + str(dW2.shape))
+        print("Dimensions of db1 = " + str(db1.shape))
+        print("Dimensions of db2 = " + str(db2.shape))
 
       # Update weights (TODO: Add regularization)
       W1 = W1 - learn_rate * dW1
@@ -166,9 +200,18 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
       b1 = b1 - learn_rate * db1
       b2 = b2 - learn_rate * db2
 
-    # print info
-    #if i % 1 == 0:
-    print("Current J: " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
+      if 0:
+        print("After update, " + str(i))
+        print("Dimensions of W1 = " + str(W1.shape))
+        print("Dimensions of W2 = " + str(W2.shape))
+        print("Dimensions of b1 = " + str(b1.shape))
+        print("Dimensions of b2 = " + str(b2.shape))
+        print("Dimensions of dW1 = " + str(dW1.shape))
+        print("Dimensions of dW2 = " + str(dW2.shape))
+        print("Dimensions of db1 = " + str(db1.shape))
+        print("Dimensions of db2 = " + str(db2.shape))
+
+      print("Current J: " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
 
   return W1, W2, b1, b2
 
@@ -191,8 +234,8 @@ def initialize_weights(hidden_units = 30):
   w1_abs = 1.0 / np.sqrt(784)
   w2_abs = 1.0 / np.sqrt(30)
 
-  W1 =  np.random.uniform(-w1_abs,w1_abs,[784, hidden_units]) # 784 x hidden_units
-  W2 = np.random.uniform(-w2_abs,w2_abs,[hidden_units, 10]) # hidden_units x 10
+  W1 =  np.random.uniform(-w1_abs,w1_abs,[hidden_units, 784]) # 784 x hidden_units
+  W2 = np.random.uniform(-w2_abs,w2_abs,[10, hidden_units]) # hidden_units x 10
   b1 = 0.01 * np.ones((hidden_units,1)) # hidden_units x 1
   b2 = 0.01 * np.ones((10,1)) # 10 x 1
 
@@ -222,18 +265,21 @@ if __name__ == "__main__":
 
   # Initialize weight vectors
   (W1, W2, b1, b2) = initialize_weights()
+  print("Initial cost for initialized weights, J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
+  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 1, num_epochs = 1, reg_strength = 0)
+  print "done"
 
-  #print("Initial cost for initialized weights, J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
+
 
   w = pack(W1, W2, b1, b2)
 
   grad_batch = trainingDigits[0].reshape((784,1))
   grad_label = trainingLabels[0]
   
-  print check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w)
+  # print check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w)
 
   #W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, 30, 0.01, 64, 1, 0)
-  print "done"
+  # print "done"
   # TODO Use check_grad to confirm gradient functions work
 
   # NOTE: NEW ACCURACY FUNCTION
