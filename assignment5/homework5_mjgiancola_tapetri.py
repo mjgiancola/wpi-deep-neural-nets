@@ -35,7 +35,7 @@ def unpack(w, hidden_units):
 
   return W1, W2, b1, b2
 
-def accuracy(weights, digits, labels):
+def accuracy(W1, W2, b1, b2, digits, labels):
 
   _, _, _, y_hats = feed_forward(digits, W1, W2, b1, b2)
   y_actuals = labels
