@@ -28,8 +28,8 @@ def unpack(w, hidden_units):
   b1 = w[b:c]
   b2 = w[c:d]
 
-  W1 = np.reshape(W1, (784, hidden_units))
-  W2 = np.reshape(W2, (hidden_units, 10))
+  W1 = np.reshape(W1, (hidden_units, 784))
+  W2 = np.reshape(W2, (10, hidden_units))
   b1 = np.reshape(b1, (hidden_units, 1))
   b2 = np.reshape(b2, (10, 1))
 
@@ -65,6 +65,9 @@ def soft_max(x):
     e_x = np.exp(max_removed)
     return e_x / e_x.sum(axis = 1, keepdims=True) 
 
+  # print check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w)
+
+
 # For confirming gradient with check_grad
 def _J(w, digits, labels):
   W1, W2, b1, b2 = unpack(w, 30)
@@ -73,6 +76,8 @@ def _J(w, digits, labels):
 def J (W1, W2, b1, b2, digits, labels):
 
   m = digits.shape[0]
+
+  # print ("m is " + str(m))
 
   _, _, _, y_hats = feed_forward(digits, W1, W2, b1, b2)
   y_actuals = labels
@@ -91,10 +96,10 @@ def feed_forward(batch, W1, W2, b1, b2):
   # W1 is 784 * num_hidden_units (varies)
   # z1 (and h1) should be num_instances * num_hidden_units
 
-  print("[feed forward] Dimensions of W1 = " + str(W1.shape))
-  print("[feed forward] Dimensions of W2 = " + str(W2.shape))
-  print("[feed forward] Dimensions of b1 = " + str(b1.shape))
-  print("[feed forward] Dimensions of b2 = " + str(b2.shape))
+  # print("[feed forward] Dimensions of W1 = " + str(W1.shape))
+  # print("[feed forward] Dimensions of W2 = " + str(W2.shape))
+  # print("[feed forward] Dimensions of b1 = " + str(b1.shape))
+  # print("[feed forward] Dimensions of b2 = " + str(b2.shape))
 
   z1_no_bias = np.dot(batch, W1.T)
   z1 =  z1_no_bias + b1.T
@@ -117,10 +122,10 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   J with respect to W1, W2, b1, and b2.
   """
 
-  print ("[backprop] Dimension of z1 = " + str(z1.shape))
-  print ("[backprop] Dimension of h1 = " + str(h1.shape))
-  print ("[backprop] Dimension of z2 = " + str(z2.shape))
-  print ("[backprop] Dimension of y_hats = " + str(y_hats.shape))
+  # print ("[backprop] Dimension of z1 = " + str(z1.shape))
+  # print ("[backprop] Dimension of h1 = " + str(h1.shape))
+  # print ("[backprop] Dimension of z2 = " + str(z2.shape))
+  # print ("[backprop] Dimension of y_hats = " + str(y_hats.shape))
 
   y_actuals = batch_labels # np.reshape(batch_labels, (10, 1)) #TODO Fix for multiple instanecs, use batch_labels.shape[1]
   m = batch.shape[0]
@@ -128,29 +133,29 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   dJdz2 = (y_hats - y_actuals) # num_instances * 10
   dJdh1 = np.dot(dJdz2, W2) # num_instances * 30
 
-  print ("[backprop] Dimension of dJdz2 = " + str(dJdz2.shape))
-  print ("[backprop] Dimension of dJdh1 = " + str(dJdh1.shape))
+  # print ("[backprop] Dimension of dJdz2 = " + str(dJdz2.shape))
+  # print ("[backprop] Dimension of dJdh1 = " + str(dJdh1.shape))
 
   # Equivalently, dJ/dz1 (hadamard product!!)
   g = dJdh1 * relu_prime(z1) # num_instances * 30
 
-  print ("[backprop] Dimension of g = " + str(g.shape))
+  # print ("[backprop] Dimension of g = " + str(g.shape))
 
-  print ("[backprop] Dimension of batch = " + str(batch.shape))
-  print ("[backprop] Dimension of h1 = " + str(h1.shape))
+  # print ("[backprop] Dimension of batch = " + str(batch.shape))
+  # print ("[backprop] Dimension of h1 = " + str(h1.shape))
 
   # Compute outer product
-  dW1 = np.outer(g, batch.T) # TODO: ends up being (num_instances*30) * (num_instances*784)
-  dW2 = np.outer(dJdz2, h1.T) # TODO: ends up being (num_instances*10) * (num_instances*30)
+  dW1 = 1.0 / m * np.outer(g, batch.T) # TODO: ends up being (num_instances*30) * (num_instances*784)
+  dW2 = 1.0 / m * np.outer(dJdz2, h1.T) # TODO: ends up being (num_instances*10) * (num_instances*30)
 
   # Ideally the two above ones are really num_instances * (30 * 784) (3dim) and num_instances * (10 * 30) (3dim)
   # and we simply want to average along the first dimension, meaning we get dW1 being 30 * 784 and dW2 being 10 * 30
 
-  print ("Dw2 print:")
-  print (np.count_nonzero(dW2))
+  # print ("Dw2 print:")
+  # print (np.count_nonzero(dW2))
 
-  print ("[backprop] Dimension of dW1 = " + str(dW1.shape))
-  print ("[backprop] Dimension of dW2 = " + str(dW2.shape))
+  # print ("[backprop] Dimension of dW1 = " + str(dW1.shape))
+  # print ("[backprop] Dimension of dW2 = " + str(dW2.shape))
 
   # Gradient is dJ/dz1 * dz1/db1, which is just 1
   # tmp = np.fill_diagonal(np.zeros(h1.shape[1], h1.shape[1]), 1)
@@ -160,19 +165,19 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   # tmp2 = np.fill_diagonal(np.zeros((b2.shape[0], b2.shape[0])), 1)
   db2 = 1.0 / m * np.sum(np.dot(dJdz2, np.identity(b2.size)).T, axis=1, keepdims=True)
 
-  print ("[backprop] Dimension of db1 = " + str(db1.shape))
-  print ("[backprop] Dimension of db2 = " + str(db2.shape))
+  # print ("[backprop] Dimension of db1 = " + str(db1.shape))
+  # print ("[backprop] Dimension of db2 = " + str(db2.shape))
 
-  print("-----")
+  # print("-----")
 
-  print("[backprop] Dimensions of W1 = " + str(W1.shape))
-  print("[backprop] Dimensions of W2 = " + str(W2.shape))
-  print("[backprop] Dimensions of b1 = " + str(b1.shape))
-  print("[backprop] Dimensions of b2 = " + str(b2.shape))
-  print("[backprop] Dimensions of dW1 = " + str(dW1.shape))
-  print("[backprop] Dimensions of dW2 = " + str(dW2.shape))
-  print("[backprop] Dimensions of db1 = " + str(db1.shape))
-  print("[backprop] Dimensions of db2 = " + str(db2.shape))
+  # print("[backprop] Dimensions of W1 = " + str(W1.shape))
+  # print("[backprop] Dimensions of W2 = " + str(W2.shape))
+  # print("[backprop] Dimensions of b1 = " + str(b1.shape))
+  # print("[backprop] Dimensions of b2 = " + str(b2.shape))
+  # print("[backprop] Dimensions of dW1 = " + str(dW1.shape))
+  # print("[backprop] Dimensions of dW2 = " + str(dW2.shape))
+  # print("[backprop] Dimensions of db1 = " + str(db1.shape))
+  # print("[backprop] Dimensions of db2 = " + str(db2.shape))
 
 
   return dW1, dW2, db1, db2
@@ -255,10 +260,11 @@ def initialize_weights(hidden_units = 30):
   """
 
   w1_abs = 1.0 / np.sqrt(784)
-  w2_abs = 1.0 / np.sqrt(30)
+  w2_abs = 1.0 / np.sqrt(hidden_units)
 
   W1 =  np.random.uniform(-w1_abs,w1_abs,[hidden_units, 784]) # 784 x hidden_units
   W2 = np.random.uniform(-w2_abs,w2_abs,[10, hidden_units]) # hidden_units x 10
+  
   b1 = 0.01 * np.ones((hidden_units,1)) # hidden_units x 1
   b2 = 0.01 * np.ones((10,1)) # 10 x 1
 
@@ -289,17 +295,31 @@ if __name__ == "__main__":
   # Initialize weight vectors
   (W1, W2, b1, b2) = initialize_weights()
   print("Initial cost for initialized weights, J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
-  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 1, num_epochs = 1, reg_strength = 0)
-  print "done"
+  # W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 1, num_epochs = 1, reg_strength = 0)
 
+  # print (W1)
 
+  print("Relu check")
+  a = np.array([[1,-1,2], [-3,0,2]])
+  print(a)
+  print(relu_prime(a))
 
-  # w = pack(W1, W2, b1, b2)
+  w = pack(W1, W2, b1, b2)
 
-  # grad_batch = trainingDigits[0].reshape((784,1))
-  # grad_label = trainingLabels[0]
+  W1_unpack, W2_unpack, b1_unpack, b2_unpack = unpack(w, 30)
+
+  # print (np.array_equal(W1, W1_unpack))
+  # print (np.array_equal(W2, W2_unpack))
+  # print (np.array_equal(b1, b1_unpack))
+  # print (np.array_equal(b2, b2_unpack))
+
+  grad_batch = trainingDigits[0].T # handles numpy dimension removal
+  grad_label = trainingLabels[0].T # handles numpy dimension removal
+
+  print("grad_batch is " + str(grad_batch.shape))
+  print("grad_label is " + str(grad_label.shape))
   
-  # print check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w)
+  print check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w)
 
   #W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, 30, 0.01, 64, 1, 0)
   # print "done"
