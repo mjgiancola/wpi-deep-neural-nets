@@ -139,10 +139,11 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   # Equivalently, dJ/dz1 (hadamard product!!)
   g = (dJdh1 * relu_prime(z1)).T # num_instances * 30
 
-  print ("[backprop] Dimension of g = " + str(g.shape))
+  if 0:
+    print ("[backprop] Dimension of g = " + str(g.shape))
 
-  print ("[backprop] Dimension of batch = " + str(batch.shape))
-  print ("[backprop] Dimension of h1 = " + str(h1.shape))
+    print ("[backprop] Dimension of batch = " + str(batch.shape))
+    print ("[backprop] Dimension of h1 = " + str(h1.shape))
 
   # Compute outer product
   dW1 = 1.0 / m * np.dot(g, batch) # TODO: ends up being (num_instances*30) * (num_instances*784)
@@ -201,7 +202,7 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
     # Extract new batch from data
     for (batch_data, batch_labels) in batches:
 
-      print("Current J: " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
+      # print("Current J: " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
 
       # Forward propagation
       z1, h1, z2, y_hats = feed_forward(batch_data, W1, W2, b1, b2)
@@ -237,7 +238,7 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
         print("Dimensions of db1 = " + str(db1.shape))
         print("Dimensions of db2 = " + str(db2.shape))
 
-      print("Current J: i=" + str(i) + " : " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
+    print("Current J: i=" + str(i) + " : " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
 
   return W1, W2, b1, b2
 
@@ -268,17 +269,10 @@ def initialize_weights(hidden_units = 30):
 
   return W1, W2, b1, b2
 
-if __name__ == "__main__":
-   
-  # Load data
-  trainingDigits = np.load("mnist_train_images.npy")
-  trainingLabels = np.load("mnist_train_labels.npy")
-  validationDigits = np.load("mnist_validation_images.npy")
-  validationLabels = np.load("mnist_validation_labels.npy")
-  testingDigits = np.load("mnist_test_images.npy")
-  testingLabels = np.load("mnist_test_labels.npy")
+# TODO Write this
+def findBestHyperparameters():
 
-  # Hyper parameters
+  # Hyperparameter options
   num_hidden_units = [30,40,50]
   learning_rate = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5]
   minibatch_size = [16, 32, 64, 128, 256]
@@ -290,33 +284,29 @@ if __name__ == "__main__":
   #    * validate NN on validation set
   # Report final accuracy on test set
 
+  pass
 
-  a = np.array([[1,2],[3,4]])
-  b = np.array([[1,2],[3,4]])
+if __name__ == "__main__":
+   
+  # Load data
+  trainingDigits = np.load("mnist_train_images.npy")
+  trainingLabels = np.load("mnist_train_labels.npy")
+  validationDigits = np.load("mnist_validation_images.npy")
+  validationLabels = np.load("mnist_validation_labels.npy")
+  testingDigits = np.load("mnist_test_images.npy")
+  testingLabels = np.load("mnist_test_labels.npy")
 
-  print(np.tensordot(a,b,axes = 2))
-
-  # Initialize weight vectors
   (W1, W2, b1, b2) = initialize_weights()
-  print("Initial cost for initialized weights, J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
-  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 1, num_epochs = 1, reg_strength = 0)
+  print("Cost for initialized weights, J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
 
-  # print (W1)
+  # Confirm gradient expression is correct
+  w = pack(W1, W2, b1, b2)
+  grad_batch = trainingDigits[0,:,None].T # handles numpy dimension removal
+  grad_label = trainingLabels[0,:,None].T # handles numpy dimension removal
+  print "check_grad: " + str(check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w))
 
-  # print("Relu check")
-  # a = np.array([[1,-1,2], [-3,0,2]])
-  # print(a)
-  # print(relu_prime(a))
+  # Run stochastic gradient descent
+  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 64, num_epochs = 20, reg_strength = 0)
 
-  # w = pack(W1, W2, b1, b2)
-
-  # W1_unpack, W2_unpack, b1_unpack, b2_unpack = unpack(w, 30)
-
-  # grad_batch = trainingDigits[0,:,None].T # handles numpy dimension removal
-  # grad_label = trainingLabels[0,:,None].T # handles numpy dimension removal
-
-  # print("grad_batch is " + str(grad_batch.shape))
-  # print("grad_label is " + str(grad_label.shape))
-  
-  # print check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w)
-
+  print "New Accuracy: " + str(accuracy(W1, W2, b1, b2, testingDigits, testingLabels))
+  print "Final (unregularized) Cost: " + str(J(W1, W2, b1, b2, testingDigits, testingLabels))
