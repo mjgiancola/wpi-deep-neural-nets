@@ -147,18 +147,18 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   # and we simply want to average along the first dimension, meaning we get dW1 being 30 * 784 and dW2 being 10 * 30
 
   print ("Dw2 print:")
-  print (dW2)
+  print (np.count_nonzero(dW2))
 
   print ("[backprop] Dimension of dW1 = " + str(dW1.shape))
   print ("[backprop] Dimension of dW2 = " + str(dW2.shape))
 
   # Gradient is dJ/dz1 * dz1/db1, which is just 1
   # tmp = np.fill_diagonal(np.zeros(h1.shape[1], h1.shape[1]), 1)
-  db1 = 1.0 / m * np.sum(np.dot(g, np.identity(b1.size)).T, axis=1)
+  db1 = 1.0 / m * np.sum(np.dot(g, np.identity(b1.size)).T, axis=1, keepdims=True)
 
   # Similarly, gradient is dJ/dz2 * dz2/db2, which is also 1
   # tmp2 = np.fill_diagonal(np.zeros((b2.shape[0], b2.shape[0])), 1)
-  db2 = 1.0 / m * np.sum(np.dot(dJdz2, np.identity(b2.size)).T, axis=1)
+  db2 = 1.0 / m * np.sum(np.dot(dJdz2, np.identity(b2.size)).T, axis=1, keepdims=True)
 
   print ("[backprop] Dimension of db1 = " + str(db1.shape))
   print ("[backprop] Dimension of db2 = " + str(db2.shape))
@@ -289,15 +289,15 @@ if __name__ == "__main__":
   # Initialize weight vectors
   (W1, W2, b1, b2) = initialize_weights()
   print("Initial cost for initialized weights, J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
-  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 2, num_epochs = 1, reg_strength = 0)
+  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 1, num_epochs = 1, reg_strength = 0)
   print "done"
 
 
 
-  w = pack(W1, W2, b1, b2)
+  # w = pack(W1, W2, b1, b2)
 
-  grad_batch = trainingDigits[0].reshape((784,1))
-  grad_label = trainingLabels[0]
+  # grad_batch = trainingDigits[0].reshape((784,1))
+  # grad_label = trainingLabels[0]
   
   # print check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w)
 
