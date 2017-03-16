@@ -137,16 +137,16 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   # print ("[backprop] Dimension of dJdh1 = " + str(dJdh1.shape))
 
   # Equivalently, dJ/dz1 (hadamard product!!)
-  g = dJdh1 * relu_prime(z1) # num_instances * 30
+  g = (dJdh1 * relu_prime(z1)).T # num_instances * 30
 
-  # print ("[backprop] Dimension of g = " + str(g.shape))
+  print ("[backprop] Dimension of g = " + str(g.shape))
 
-  # print ("[backprop] Dimension of batch = " + str(batch.shape))
-  # print ("[backprop] Dimension of h1 = " + str(h1.shape))
+  print ("[backprop] Dimension of batch = " + str(batch.shape))
+  print ("[backprop] Dimension of h1 = " + str(h1.shape))
 
   # Compute outer product
-  dW1 = 1.0 / m * np.outer(g, batch.T) # TODO: ends up being (num_instances*30) * (num_instances*784)
-  dW2 = 1.0 / m * np.outer(dJdz2, h1.T) # TODO: ends up being (num_instances*10) * (num_instances*30)
+  dW1 = 1.0 / m * np.dot(g, batch) # TODO: ends up being (num_instances*30) * (num_instances*784)
+  dW2 = 1.0 / m * np.dot(dJdz2.T, h1) # TODO: ends up being (num_instances*10) * (num_instances*30)
 
   # Ideally the two above ones are really num_instances * (30 * 784) (3dim) and num_instances * (10 * 30) (3dim)
   # and we simply want to average along the first dimension, meaning we get dW1 being 30 * 784 and dW2 being 10 * 30
@@ -158,11 +158,9 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   # print ("[backprop] Dimension of dW2 = " + str(dW2.shape))
 
   # Gradient is dJ/dz1 * dz1/db1, which is just 1
-  # tmp = np.fill_diagonal(np.zeros(h1.shape[1], h1.shape[1]), 1)
-  db1 = 1.0 / m * np.sum(np.dot(g, np.identity(b1.size)).T, axis=1, keepdims=True)
+  db1 = 1.0 / m * np.sum(np.dot(g.T, np.identity(b1.size)).T, axis=1, keepdims=True)
 
   # Similarly, gradient is dJ/dz2 * dz2/db2, which is also 1
-  # tmp2 = np.fill_diagonal(np.zeros((b2.shape[0], b2.shape[0])), 1)
   db2 = 1.0 / m * np.sum(np.dot(dJdz2, np.identity(b2.size)).T, axis=1, keepdims=True)
 
   # print ("[backprop] Dimension of db1 = " + str(db1.shape))
@@ -239,7 +237,7 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
         print("Dimensions of db1 = " + str(db1.shape))
         print("Dimensions of db2 = " + str(db2.shape))
 
-      print("Current J: " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
+      print("Current J: i=" + str(i) + " : " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
 
   return W1, W2, b1, b2
 
@@ -292,47 +290,33 @@ if __name__ == "__main__":
   #    * validate NN on validation set
   # Report final accuracy on test set
 
+
+  a = np.array([[1,2],[3,4]])
+  b = np.array([[1,2],[3,4]])
+
+  print(np.tensordot(a,b,axes = 2))
+
   # Initialize weight vectors
   (W1, W2, b1, b2) = initialize_weights()
   print("Initial cost for initialized weights, J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
-  # W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 1, num_epochs = 1, reg_strength = 0)
+  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 1, num_epochs = 1, reg_strength = 0)
 
   # print (W1)
 
-  print("Relu check")
-  a = np.array([[1,-1,2], [-3,0,2]])
-  print(a)
-  print(relu_prime(a))
+  # print("Relu check")
+  # a = np.array([[1,-1,2], [-3,0,2]])
+  # print(a)
+  # print(relu_prime(a))
 
-  w = pack(W1, W2, b1, b2)
+  # w = pack(W1, W2, b1, b2)
 
-  W1_unpack, W2_unpack, b1_unpack, b2_unpack = unpack(w, 30)
+  # W1_unpack, W2_unpack, b1_unpack, b2_unpack = unpack(w, 30)
 
-  # print (np.array_equal(W1, W1_unpack))
-  # print (np.array_equal(W2, W2_unpack))
-  # print (np.array_equal(b1, b1_unpack))
-  # print (np.array_equal(b2, b2_unpack))
+  # grad_batch = trainingDigits[0,:,None].T # handles numpy dimension removal
+  # grad_label = trainingLabels[0,:,None].T # handles numpy dimension removal
 
-  grad_batch = trainingDigits[0].T # handles numpy dimension removal
-  grad_label = trainingLabels[0].T # handles numpy dimension removal
-
-  print("grad_batch is " + str(grad_batch.shape))
-  print("grad_label is " + str(grad_label.shape))
+  # print("grad_batch is " + str(grad_batch.shape))
+  # print("grad_label is " + str(grad_label.shape))
   
-  print check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w)
-
-  #W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, 30, 0.01, 64, 1, 0)
-  # print "done"
-  # TODO Use check_grad to confirm gradient functions work
-
-  # NOTE: NEW ACCURACY FUNCTION
-  # print accuracy(testingDigits, testingLabels, W1, W2, b1, b2)
-
-  # Run gradient descent with learning_rate=0.5, num_iter=325
-  # W = gradientDescent(trainingDigits, trainingLabels, W, 0.5, 325)
-  
-  # print "Loss on Test Set: " + str(J(W, testingDigits, testingLabels))
-  # print "Accuracy on Test Set: " + str(accuracy(W, testingDigits, testingLabels))
-
-  # plot_weights_vectors(W)
+  # print check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w)
 
