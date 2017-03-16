@@ -3,6 +3,8 @@ import numpy as np
 from scipy.optimize import check_grad
 import matplotlib.pyplot as plt
 
+np.set_printoptions(threshold=np.nan)
+
 # Compresses weights into 1D weight vector
 def pack(W1, W2, b1, b2):
   W1 = np.ravel(W1)
@@ -89,10 +91,10 @@ def feed_forward(batch, W1, W2, b1, b2):
   # W1 is 784 * num_hidden_units (varies)
   # z1 (and h1) should be num_instances * num_hidden_units
 
-  # print("Dimensions of W1 = " + str(W1.shape))
-  # print("Dimensions of W2 = " + str(W2.shape))
-  # print("Dimensions of b1 = " + str(b1.shape))
-  # print("Dimensions of b2 = " + str(b2.shape))
+  print("[feed forward] Dimensions of W1 = " + str(W1.shape))
+  print("[feed forward] Dimensions of W2 = " + str(W2.shape))
+  print("[feed forward] Dimensions of b1 = " + str(b1.shape))
+  print("[feed forward] Dimensions of b2 = " + str(b2.shape))
 
   z1_no_bias = np.dot(batch, W1.T)
   z1 =  z1_no_bias + b1.T
@@ -115,41 +117,62 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   J with respect to W1, W2, b1, and b2.
   """
 
+  print ("[backprop] Dimension of z1 = " + str(z1.shape))
+  print ("[backprop] Dimension of h1 = " + str(h1.shape))
+  print ("[backprop] Dimension of z2 = " + str(z2.shape))
+  print ("[backprop] Dimension of y_hats = " + str(y_hats.shape))
+
   y_actuals = batch_labels # np.reshape(batch_labels, (10, 1)) #TODO Fix for multiple instanecs, use batch_labels.shape[1]
+  m = batch.shape[0]
 
-  dJdz2 = (y_hats - y_actuals)
-  dJdh1 = np.dot(dJdz2, W2)
+  dJdz2 = (y_hats - y_actuals) # num_instances * 10
+  dJdh1 = np.dot(dJdz2, W2) # num_instances * 30
 
-  # Equivalently, dJ/dz1
-  g = dJdh1 * relu_prime(z1)
+  print ("[backprop] Dimension of dJdz2 = " + str(dJdz2.shape))
+  print ("[backprop] Dimension of dJdh1 = " + str(dJdh1.shape))
+
+  # Equivalently, dJ/dz1 (hadamard product!!)
+  g = dJdh1 * relu_prime(z1) # num_instances * 30
+
+  print ("[backprop] Dimension of g = " + str(g.shape))
+
+  print ("[backprop] Dimension of batch = " + str(batch.shape))
+  print ("[backprop] Dimension of h1 = " + str(h1.shape))
 
   # Compute outer product
-  dW1 = np.outer(g, batch.T)
-  dW2 = np.outer(dJdz2, h1.T)
+  dW1 = np.outer(g, batch.T) # TODO: ends up being (num_instances*30) * (num_instances*784)
+  dW2 = np.outer(dJdz2, h1.T) # TODO: ends up being (num_instances*10) * (num_instances*30)
 
-  # print ("Dimension of dW1 = " + str(dW1.shape))
-  # print ("Dimension of dW2 = " + str(dW2.shape))
+  # Ideally the two above ones are really num_instances * (30 * 784) (3dim) and num_instances * (10 * 30) (3dim)
+  # and we simply want to average along the first dimension, meaning we get dW1 being 30 * 784 and dW2 being 10 * 30
+
+  print ("Dw2 print:")
+  print (dW2)
+
+  print ("[backprop] Dimension of dW1 = " + str(dW1.shape))
+  print ("[backprop] Dimension of dW2 = " + str(dW2.shape))
 
   # Gradient is dJ/dz1 * dz1/db1, which is just 1
-  # print"ss3"
   # tmp = np.fill_diagonal(np.zeros(h1.shape[1], h1.shape[1]), 1)
-  db1 = np.dot(g, np.identity(b1.size)).T
+  db1 = 1.0 / m * np.sum(np.dot(g, np.identity(b1.size)).T, axis=1)
 
   # Similarly, gradient is dJ/dz2 * dz2/db2, which is also 1
   # tmp2 = np.fill_diagonal(np.zeros((b2.shape[0], b2.shape[0])), 1)
-  db2 = np.dot(dJdz2, np.identity(b2.size)).T
+  db2 = 1.0 / m * np.sum(np.dot(dJdz2, np.identity(b2.size)).T, axis=1)
 
-  # print ("Dimension of db1 = " + str(db1.shape))
-  # print ("Dimension of db2 = " + str(db2.shape))
+  print ("[backprop] Dimension of db1 = " + str(db1.shape))
+  print ("[backprop] Dimension of db2 = " + str(db2.shape))
 
-  # print("Dimensions of W1 = " + str(W1.shape))
-  # print("Dimensions of W2 = " + str(W2.shape))
-  # print("Dimensions of b1 = " + str(b1.shape))
-  # print("Dimensions of b2 = " + str(b2.shape))
-  # print("Dimensions of dW1 = " + str(dW1.shape))
-  # print("Dimensions of dW2 = " + str(dW2.shape))
-  # print("Dimensions of db1 = " + str(db1.shape))
-  # print("Dimensions of db2 = " + str(db2.shape))
+  print("-----")
+
+  print("[backprop] Dimensions of W1 = " + str(W1.shape))
+  print("[backprop] Dimensions of W2 = " + str(W2.shape))
+  print("[backprop] Dimensions of b1 = " + str(b1.shape))
+  print("[backprop] Dimensions of b2 = " + str(b2.shape))
+  print("[backprop] Dimensions of dW1 = " + str(dW1.shape))
+  print("[backprop] Dimensions of dW2 = " + str(dW2.shape))
+  print("[backprop] Dimensions of db1 = " + str(db1.shape))
+  print("[backprop] Dimensions of db2 = " + str(db2.shape))
 
 
   return dW1, dW2, db1, db2
@@ -266,7 +289,7 @@ if __name__ == "__main__":
   # Initialize weight vectors
   (W1, W2, b1, b2) = initialize_weights()
   print("Initial cost for initialized weights, J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
-  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 1, num_epochs = 1, reg_strength = 0)
+  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 2, num_epochs = 1, reg_strength = 0)
   print "done"
 
 
