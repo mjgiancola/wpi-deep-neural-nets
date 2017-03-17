@@ -3,21 +3,25 @@ import numpy as np
 from numpy.linalg import norm
 from scipy.optimize import check_grad
 
-np.set_printoptions(threshold=np.nan)
+########## CHECK_GRAD UTILITY FUNCTIONS ##########
 
-# Compresses weights into 1D weight vector
 def pack(W1, W2, b1, b2):
+  """
+  Compresses weights/biases into 1D weight vector
+  """
+
   W1 = np.ravel(W1)
   W2 = np.ravel(W2)
   b1 = b1.flatten()
   b2 = b2.flatten()
 
-  result = np.hstack((W1, W2, b1, b2))
+  return np.hstack((W1, W2, b1, b2))
 
-  return result
-
-# Splits 1D weight vector into component weights
 def unpack(w, hidden_units):
+  """
+  Splits 1D weight vector into component weights
+  """
+
   a = 784 * hidden_units
   b = a + 300
   c = b + 30
@@ -35,12 +39,30 @@ def unpack(w, hidden_units):
 
   return W1, W2, b1, b2
 
-def accuracy(W1, W2, b1, b2, digits, labels):
+def _J(w, digits, labels):
+  """
+  Wrapper of cost function for confirming gradient with check_grad
+  """
 
-  _, _, _, y_hats = feed_forward(digits, W1, W2, b1, b2)
-  y_actuals = labels
-  
-  return np.mean(np.argmax(y_hats, axis=1) == np.argmax(y_actuals, axis=1))
+  W1, W2, b1, b2 = unpack(w, 30)
+  return J(W1, W2, b1, b2, digits, labels)
+
+def gradJ(w, batch_data, batch_labels):
+  """
+  Gradient function (for the purposes of testing with check_grad)
+  """
+
+  W1, W2, b1, b2 = unpack(w, 30)
+
+  # Forward propagation
+  z1, h1, z2, y_hats = feed_forward(batch_data, W1, W2, b1, b2)
+
+  # Backward propagation
+  dW1, dW2, db1, db2 = backprop(batch_data, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2)
+
+  return pack(dW1, dW2, db1, db2)
+
+########## ACTIVATION FUNCTIONS ##########
 
 def relu(x):
   return np.maximum(x, 0)
@@ -56,10 +78,14 @@ def soft_max(x):
     e_x = np.exp(max_removed)
     return e_x / e_x.sum(axis = 1, keepdims=True) 
 
-# For confirming gradient with check_grad
-def _J(w, digits, labels):
-  W1, W2, b1, b2 = unpack(w, 30)
-  return J(W1, W2, b1, b2, digits, labels)
+########## MAIN NEURAL NETWORK CODE ##########
+
+def accuracy(W1, W2, b1, b2, digits, labels):
+
+  _, _, _, y_hats = feed_forward(digits, W1, W2, b1, b2)
+  y_actuals = labels
+  
+  return np.mean(np.argmax(y_hats, axis=1) == np.argmax(y_actuals, axis=1))
 
 def J (W1, W2, b1, b2, digits, labels, alpha=0.):
 
@@ -67,7 +93,6 @@ def J (W1, W2, b1, b2, digits, labels, alpha=0.):
 
   _, _, _, y_hats = feed_forward(digits, W1, W2, b1, b2)
   y_actuals = labels
-  #regul = 0.5 * alpha * (np.sum(np.dot(W1.T, W1)) + np.sum(np.dot(W2.T, W2)))
   regul = 0.5 * alpha * (norm(W1) + norm(W2))
   result = -1.0/m * np.sum(np.multiply(y_actuals, np.log(y_hats))) + regul
 
@@ -97,7 +122,6 @@ def feed_forward(batch, W1, W2, b1, b2):
 
   return z1, h1, z2, y_hats
 
-# TODO: db1, dW2, db2, change intermediate value names a, b
 def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2, alpha=0.):
   """
   Runs backpropagation through the network and returns the gradients for 
@@ -110,15 +134,12 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2, alpha=0.):
   dJdz2 = (y_hats - y_actuals) # num_instances * 10
   dJdh1 = np.dot(dJdz2, W2) # num_instances * 3
 
-  # Equivalently, dJ/dz1 (hadamard product!!)
+  # Equivalently, dJ/dz1 (Hadamard Product)
   g = (dJdh1 * relu_prime(z1)).T # num_instances * 30
 
   # Compute outer product
-  dW1 = 1.0 / m * np.dot(g, batch) + alpha*W1 # TODO: ends up being (num_instances*30) * (num_instances*784)
-  dW2 = 1.0 / m * np.dot(dJdz2.T, h1) + alpha*W2 # TODO: ends up being (num_instances*10) * (num_instances*30)
-
-  # Ideally the two above ones are really num_instances * (30 * 784) (3dim) and num_instances * (10 * 30) (3dim)
-  # and we simply want to average along the first dimension, meaning we get dW1 being 30 * 784 and dW2 being 10 * 30
+  dW1 = 1.0 / m * np.dot(g, batch) + alpha*W1
+  dW2 = 1.0 / m * np.dot(dJdz2.T, h1) + alpha*W2
 
   # Gradient is dJ/dz1 * dz1/db1, which is just 1
   db1 = 1.0 / m * np.sum(np.dot(g.T, np.identity(b1.size)).T, axis=1, keepdims=True)
@@ -128,9 +149,6 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2, alpha=0.):
 
   return dW1, dW2, db1, db2
   
-import random
-
-# TODO:
 def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num_epochs, reg_strength):
   """
   Trains a 3-layer NN with the given hyper parameters and return the weights W1, W2, b1, b2 when done learning.
@@ -167,17 +185,6 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
 
   return W1, W2, b1, b2
 
-def gradJ(w, batch_data, batch_labels):
-  W1, W2, b1, b2 = unpack(w, 30)
-
-  # Forward propagation
-  z1, h1, z2, y_hats = feed_forward(batch_data, W1, W2, b1, b2)
-
-  # Backward propagation
-  dW1, dW2, db1, db2 = backprop(batch_data, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2)
-
-  return pack(dW1, dW2, db1, db2)
-
 def initialize_weights(hidden_units = 30):
   """
   Initializes weight and bias vectors
@@ -186,16 +193,18 @@ def initialize_weights(hidden_units = 30):
   w1_abs = 1.0 / np.sqrt(784)
   w2_abs = 1.0 / np.sqrt(hidden_units)
 
-  W1 =  np.random.uniform(-w1_abs,w1_abs,[hidden_units, 784]) # 784 x hidden_units
-  W2 = np.random.uniform(-w2_abs,w2_abs,[10, hidden_units]) # hidden_units x 10
+  W1 =  np.random.uniform(-w1_abs,w1_abs,[hidden_units, 784])
+  W2 = np.random.uniform(-w2_abs,w2_abs,[10, hidden_units])
   
-  b1 = 0.01 * np.ones((hidden_units,1)) # hidden_units x 1
-  b2 = 0.01 * np.ones((10,1)) # 10 x 1
+  b1 = 0.01 * np.ones((hidden_units,1))
+  b2 = 0.01 * np.ones((10,1))
 
   return W1, W2, b1, b2
 
-# TODO Write this
-def findBestHyperparameters():
+def findBestHyperparameters(trainingDigits, trainingLabels, validationDigits, validationLabels):
+  """
+  Loops over selected values to determine best hyperparameter settings
+  """
 
   # Hyperparameter options
   num_hidden_units = [30,40,50]
@@ -204,14 +213,55 @@ def findBestHyperparameters():
   num_epochs = [100,1000,10000] # ?
   reg_strength = [0.01, 0.1, 0.2, 0.5]
 
+  chosen_params = {}
+
   # For each set of hyper param settings
   #    * train NN on training set
   #    * validate NN on validation set
-  # Report final accuracy on test set
+  
+  # num_epochs and regularization are fixed for all tests (Total: 11 tests)
 
-  # for 
+  # Fix hidden_units, batch_size, test all options of learn_rate
+  # (6 tests)
+  print "Optimizing Learning Rate..."
+  scores = []
+  for lr in learning_rate:
+    W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units=30, learn_rate=lr, batch_size=64, num_epochs=30, reg_strength=0)
+    scores.append(J(W1,W2,b1,b2, validationDigits, validationLabels))
+  chosen_params['lr'] = [y for (x,y) in sorted(zip(scores, learning_rate))][0]
+  print "Best Learning Rate: " + str(chosen_params['lr'])
 
-  pass
+  # Fix learning_rate to best, keep hidden_units fixed, test all options of minibatch_size
+  # (5 tests)
+  print "Optimizing Minibatch Size..."
+  scores = []
+  for mb in minibatch_size:
+    W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units=30, learn_rate=chosen_params['lr'], batch_size=mb, num_epochs=30, reg_strength=0)
+    scores.append(J(W1,W2,b1,b2, validationDigits, validationLabels))
+  chosen_params['mb'] = [y for (x,y) in sorted(zip(scores, minibatch_size))][0]
+  print "Best Minibatch Size: " + str(chosen_params['mb'])
+
+  # Fix learing_rate and batch_size to best, test all options of hidden_units
+  # (3 tests)
+  print "Optimizing Number of Hidden Units..."
+  scores = []
+  for hu in num_hidden_units:
+    W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units=hu, learn_rate=chosen_params['lr'], batch_size=chosen_params['mb'], num_epochs=30, reg_strength=0)
+    scores.append(J(W1,W2,b1,b2, validationDigits, validationLabels))
+  chosen_params['hu'] = [y for (x,y) in sorted(zip(scores, num_hidden_units))][0]
+  print "Best Number of Hidden Units: " + str(chosen_params['hu'])
+
+  chosen_params['ep'] = 100 # More epochs generally improves performance, and 100 doesn't take *too* long
+  chosen_params['rg'] = 0   # Regularization didn't have a significant effect on our performance
+
+  print "\nFinal Hyperparameter Choices:"
+  print "Number of Hidden Units: " + str(chosen_params['hu'])
+  print "Learning Rate: " + str(chosen_params['lr'])
+  print "Minibatch Size: " + str(chosen_params['mb'])
+  print "Number of Epochs: 100"
+  print "Regularization Strength: 0\n"
+
+  return chosen_params
 
 if __name__ == "__main__":
    
@@ -232,8 +282,13 @@ if __name__ == "__main__":
   grad_label = trainingLabels[0,:,None].T # handles numpy dimension removal
   print "check_grad: " + str(check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w))
 
-  # Run stochastic gradient descent
-  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 50, learn_rate = 0.5, batch_size = 128, num_epochs = 20, reg_strength = 1e-3)
+  params = findBestHyperparameters(trainingDigits, trainingLabels, validationDigits, validationLabels)
 
-  print "\nAccuracy: " + str(accuracy(W1, W2, b1, b2, testingDigits, testingLabels))
+  # Run stochastic gradient descent with optimal hyperparameters on test set
+  print "Training network with optimial hyperparameters..."
+  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, \
+                       hidden_units = params['hu'], learn_rate = params['lr'], batch_size = params['mb'], num_epochs = params['ep'], reg_strength = params['rg'])
+
+  print "\nResults on Testing Set"
+  print "Accuracy: " + str(accuracy(W1, W2, b1, b2, testingDigits, testingLabels))
   print "Final (unregularized) Cost: " + str(J(W1, W2, b1, b2, testingDigits, testingLabels))
