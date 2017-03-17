@@ -136,20 +136,20 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
   Trains a 3-layer NN with the given hyper parameters and return the weights W1, W2, b1, b2 when done learning.
   """
 
-  # Split into batches (TODO: shuffle?)
-  num_of_batches = trainingData.shape[0] / batch_size
-
-  batches = zip(
-    np.array_split(trainingData, num_of_batches, axis=0),  # digits
-    np.array_split(trainingLabels, num_of_batches, axis=0))  # labels
+  # Split into batches
+  num_samples = trainingData.shape[0]
+  num_of_batches = num_samples / batch_size
 
   # Initialize weight vectors
   (W1, W2, b1, b2) = initialize_weights(hidden_units)
   
   for i in range(0, num_epochs):
-    
-    # Extract new batch from data
-    for (batch_data, batch_labels) in batches:
+
+    for j in range(0, num_of_batches):
+      samples = np.random.choice(num_samples, batch_size)
+
+      batch_data = trainingData[samples]
+      batch_labels = trainingLabels[samples]
 
       # Forward propagation
       z1, h1, z2, y_hats = feed_forward(batch_data, W1, W2, b1, b2)
