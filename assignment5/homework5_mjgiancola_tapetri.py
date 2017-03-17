@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+from numpy.linalg import norm
 from scipy.optimize import check_grad
 
 np.set_printoptions(threshold=np.nan)
@@ -60,14 +61,15 @@ def _J(w, digits, labels):
   W1, W2, b1, b2 = unpack(w, 30)
   return J(W1, W2, b1, b2, digits, labels)
 
-def J (W1, W2, b1, b2, digits, labels):
+def J (W1, W2, b1, b2, digits, labels, alpha=0.):
 
   m = digits.shape[0]
 
   _, _, _, y_hats = feed_forward(digits, W1, W2, b1, b2)
   y_actuals = labels
-
-  result = -1.0/m * np.sum(np.multiply(y_actuals, np.log(y_hats)))
+  #regul = 0.5 * alpha * (np.sum(np.dot(W1.T, W1)) + np.sum(np.dot(W2.T, W2)))
+  regul = 0.5 * alpha * (norm(W1) + norm(W2))
+  result = -1.0/m * np.sum(np.multiply(y_actuals, np.log(y_hats))) + regul
 
   return result
 
@@ -96,7 +98,7 @@ def feed_forward(batch, W1, W2, b1, b2):
   return z1, h1, z2, y_hats
 
 # TODO: db1, dW2, db2, change intermediate value names a, b
-def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
+def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2, alpha=0.):
   """
   Runs backpropagation through the network and returns the gradients for 
   J with respect to W1, W2, b1, and b2.
@@ -112,8 +114,8 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   g = (dJdh1 * relu_prime(z1)).T # num_instances * 30
 
   # Compute outer product
-  dW1 = 1.0 / m * np.dot(g, batch) # TODO: ends up being (num_instances*30) * (num_instances*784)
-  dW2 = 1.0 / m * np.dot(dJdz2.T, h1) # TODO: ends up being (num_instances*10) * (num_instances*30)
+  dW1 = 1.0 / m * np.dot(g, batch) + alpha*W1 # TODO: ends up being (num_instances*30) * (num_instances*784)
+  dW2 = 1.0 / m * np.dot(dJdz2.T, h1) + alpha*W2 # TODO: ends up being (num_instances*10) * (num_instances*30)
 
   # Ideally the two above ones are really num_instances * (30 * 784) (3dim) and num_instances * (10 * 30) (3dim)
   # and we simply want to average along the first dimension, meaning we get dW1 being 30 * 784 and dW2 being 10 * 30
@@ -153,15 +155,15 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
       z1, h1, z2, y_hats = feed_forward(batch_data, W1, W2, b1, b2)
 
       # Backward propagation
-      dW1, dW2, db1, db2 = backprop(batch_data, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2)
+      dW1, dW2, db1, db2 = backprop(batch_data, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2, reg_strength)
 
       # Update weights
-      W1 = (1 - learn_rate * reg_strength) * W1 - learn_rate * dW1
-      W2 = (1 - learn_rate * reg_strength) * W2 - learn_rate * dW2
+      W1 = W1 - learn_rate * dW1
+      W2 = W2 - learn_rate * dW2
       b1 = b1 - learn_rate * db1
       b2 = b2 - learn_rate * db2
 
-    print("Epoch " + str(i) + ", J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
+    print("Epoch " + str(i) + ", J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels, reg_strength)))
 
   return W1, W2, b1, b2
 
@@ -229,7 +231,7 @@ if __name__ == "__main__":
   print "check_grad: " + str(check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w))
 
   # Run stochastic gradient descent
-  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 50, learn_rate = 0.5, batch_size = 128, num_epochs = 100, reg_strength = 0.001)
+  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 50, learn_rate = 0.5, batch_size = 128, num_epochs = 20, reg_strength = 1e-3)
 
-  print "\nNew Accuracy: " + str(accuracy(W1, W2, b1, b2, testingDigits, testingLabels))
+  print "\nAccuracy: " + str(accuracy(W1, W2, b1, b2, testingDigits, testingLabels))
   print "Final (unregularized) Cost: " + str(J(W1, W2, b1, b2, testingDigits, testingLabels))
