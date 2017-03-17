@@ -1,7 +1,6 @@
 import sys
 import numpy as np
 from scipy.optimize import check_grad
-import matplotlib.pyplot as plt
 
 np.set_printoptions(threshold=np.nan)
 
@@ -42,15 +41,6 @@ def accuracy(W1, W2, b1, b2, digits, labels):
   
   return np.mean(np.argmax(y_hats, axis=1) == np.argmax(y_actuals, axis=1))
 
-def plot_weights_vectors(w):
-    
-  plt.figure(1)
-  for i in xrange(1,11):
-      plt.subplot(1,10,i)
-      plt.imshow(w.T[i-1].reshape((28,28)), cmap='gray')
-      plt.axis('off')
-  plt.show()
-
 def relu(x):
   return np.maximum(x, 0)
 
@@ -65,9 +55,6 @@ def soft_max(x):
     e_x = np.exp(max_removed)
     return e_x / e_x.sum(axis = 1, keepdims=True) 
 
-  # print check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w)
-
-
 # For confirming gradient with check_grad
 def _J(w, digits, labels):
   W1, W2, b1, b2 = unpack(w, 30)
@@ -76,8 +63,6 @@ def _J(w, digits, labels):
 def J (W1, W2, b1, b2, digits, labels):
 
   m = digits.shape[0]
-
-  # print ("m is " + str(m))
 
   _, _, _, y_hats = feed_forward(digits, W1, W2, b1, b2)
   y_actuals = labels
@@ -95,11 +80,6 @@ def feed_forward(batch, W1, W2, b1, b2):
   # batch is num_instances (varies) * 784
   # W1 is 784 * num_hidden_units (varies)
   # z1 (and h1) should be num_instances * num_hidden_units
-
-  # print("[feed forward] Dimensions of W1 = " + str(W1.shape))
-  # print("[feed forward] Dimensions of W2 = " + str(W2.shape))
-  # print("[feed forward] Dimensions of b1 = " + str(b1.shape))
-  # print("[feed forward] Dimensions of b2 = " + str(b2.shape))
 
   z1_no_bias = np.dot(batch, W1.T)
   z1 =  z1_no_bias + b1.T
@@ -122,28 +102,14 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   J with respect to W1, W2, b1, and b2.
   """
 
-  # print ("[backprop] Dimension of z1 = " + str(z1.shape))
-  # print ("[backprop] Dimension of h1 = " + str(h1.shape))
-  # print ("[backprop] Dimension of z2 = " + str(z2.shape))
-  # print ("[backprop] Dimension of y_hats = " + str(y_hats.shape))
-
-  y_actuals = batch_labels # np.reshape(batch_labels, (10, 1)) #TODO Fix for multiple instanecs, use batch_labels.shape[1]
+  y_actuals = batch_labels
   m = batch.shape[0]
 
   dJdz2 = (y_hats - y_actuals) # num_instances * 10
-  dJdh1 = np.dot(dJdz2, W2) # num_instances * 30
-
-  # print ("[backprop] Dimension of dJdz2 = " + str(dJdz2.shape))
-  # print ("[backprop] Dimension of dJdh1 = " + str(dJdh1.shape))
+  dJdh1 = np.dot(dJdz2, W2) # num_instances * 3
 
   # Equivalently, dJ/dz1 (hadamard product!!)
   g = (dJdh1 * relu_prime(z1)).T # num_instances * 30
-
-  if 0:
-    print ("[backprop] Dimension of g = " + str(g.shape))
-
-    print ("[backprop] Dimension of batch = " + str(batch.shape))
-    print ("[backprop] Dimension of h1 = " + str(h1.shape))
 
   # Compute outer product
   dW1 = 1.0 / m * np.dot(g, batch) # TODO: ends up being (num_instances*30) * (num_instances*784)
@@ -152,35 +118,15 @@ def backprop(batch, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2):
   # Ideally the two above ones are really num_instances * (30 * 784) (3dim) and num_instances * (10 * 30) (3dim)
   # and we simply want to average along the first dimension, meaning we get dW1 being 30 * 784 and dW2 being 10 * 30
 
-  # print ("Dw2 print:")
-  # print (np.count_nonzero(dW2))
-
-  # print ("[backprop] Dimension of dW1 = " + str(dW1.shape))
-  # print ("[backprop] Dimension of dW2 = " + str(dW2.shape))
-
   # Gradient is dJ/dz1 * dz1/db1, which is just 1
   db1 = 1.0 / m * np.sum(np.dot(g.T, np.identity(b1.size)).T, axis=1, keepdims=True)
 
   # Similarly, gradient is dJ/dz2 * dz2/db2, which is also 1
   db2 = 1.0 / m * np.sum(np.dot(dJdz2, np.identity(b2.size)).T, axis=1, keepdims=True)
 
-  # print ("[backprop] Dimension of db1 = " + str(db1.shape))
-  # print ("[backprop] Dimension of db2 = " + str(db2.shape))
-
-  # print("-----")
-
-  # print("[backprop] Dimensions of W1 = " + str(W1.shape))
-  # print("[backprop] Dimensions of W2 = " + str(W2.shape))
-  # print("[backprop] Dimensions of b1 = " + str(b1.shape))
-  # print("[backprop] Dimensions of b2 = " + str(b2.shape))
-  # print("[backprop] Dimensions of dW1 = " + str(dW1.shape))
-  # print("[backprop] Dimensions of dW2 = " + str(dW2.shape))
-  # print("[backprop] Dimensions of db1 = " + str(db1.shape))
-  # print("[backprop] Dimensions of db2 = " + str(db2.shape))
-
-
   return dW1, dW2, db1, db2
   
+import random
 
 # TODO:
 def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num_epochs, reg_strength):
@@ -190,6 +136,7 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
 
   # Split into batches (TODO: shuffle?)
   num_of_batches = trainingData.shape[0] / batch_size
+
   batches = zip(
     np.array_split(trainingData, num_of_batches, axis=0),  # digits
     np.array_split(trainingLabels, num_of_batches, axis=0))  # labels
@@ -202,24 +149,11 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
     # Extract new batch from data
     for (batch_data, batch_labels) in batches:
 
-      # print("Current J: " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
-
       # Forward propagation
       z1, h1, z2, y_hats = feed_forward(batch_data, W1, W2, b1, b2)
 
       # Backward propagation
       dW1, dW2, db1, db2 = backprop(batch_data, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2)
-
-      if 0:
-        print("Before update, " + str(i))
-        print("Dimensions of W1 = " + str(W1.shape))
-        print("Dimensions of W2 = " + str(W2.shape))
-        print("Dimensions of b1 = " + str(b1.shape))
-        print("Dimensions of b2 = " + str(b2.shape))
-        print("Dimensions of dW1 = " + str(dW1.shape))
-        print("Dimensions of dW2 = " + str(dW2.shape))
-        print("Dimensions of db1 = " + str(db1.shape))
-        print("Dimensions of db2 = " + str(db2.shape))
 
       # Update weights (TODO: Add regularization)
       W1 = W1 - learn_rate * dW1
@@ -227,18 +161,7 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
       b1 = b1 - learn_rate * db1
       b2 = b2 - learn_rate * db2
 
-      if 0:
-        print("After update, " + str(i))
-        print("Dimensions of W1 = " + str(W1.shape))
-        print("Dimensions of W2 = " + str(W2.shape))
-        print("Dimensions of b1 = " + str(b1.shape))
-        print("Dimensions of b2 = " + str(b2.shape))
-        print("Dimensions of dW1 = " + str(dW1.shape))
-        print("Dimensions of dW2 = " + str(dW2.shape))
-        print("Dimensions of db1 = " + str(db1.shape))
-        print("Dimensions of db2 = " + str(db2.shape))
-
-    print("Current J: i=" + str(i) + " : " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
+    print("Epoch " + str(i) + ", J = " + str(J(W1, W2, b1, b2, trainingDigits, trainingLabels)))
 
   return W1, W2, b1, b2
 
@@ -308,5 +231,5 @@ if __name__ == "__main__":
   # Run stochastic gradient descent
   W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 64, num_epochs = 20, reg_strength = 0)
 
-  print "New Accuracy: " + str(accuracy(W1, W2, b1, b2, testingDigits, testingLabels))
+  print "\nNew Accuracy: " + str(accuracy(W1, W2, b1, b2, testingDigits, testingLabels))
   print "Final (unregularized) Cost: " + str(J(W1, W2, b1, b2, testingDigits, testingLabels))
