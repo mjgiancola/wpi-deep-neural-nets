@@ -155,9 +155,9 @@ def SGD (trainingData, trainingLabels, hidden_units, learn_rate, batch_size, num
       # Backward propagation
       dW1, dW2, db1, db2 = backprop(batch_data, batch_labels, z1, h1, z2, y_hats, W1, W2, b1, b2)
 
-      # Update weights (TODO: Add regularization)
-      W1 = W1 - learn_rate * dW1
-      W2 = W2 - learn_rate * dW2
+      # Update weights
+      W1 = (1 - learn_rate * reg_strength) * W1 - learn_rate * dW1
+      W2 = (1 - learn_rate * reg_strength) * W2 - learn_rate * dW2
       b1 = b1 - learn_rate * db1
       b2 = b2 - learn_rate * db2
 
@@ -229,7 +229,7 @@ if __name__ == "__main__":
   print "check_grad: " + str(check_grad(lambda w_: _J(w_, grad_batch, grad_label), lambda _w: gradJ(_w, grad_batch, grad_label), w))
 
   # Run stochastic gradient descent
-  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 30, learn_rate = 0.01, batch_size = 64, num_epochs = 20, reg_strength = 0)
+  W1, W2, b1, b2 = SGD(trainingDigits, trainingLabels, hidden_units = 50, learn_rate = 0.5, batch_size = 128, num_epochs = 100, reg_strength = 0.001)
 
   print "\nNew Accuracy: " + str(accuracy(W1, W2, b1, b2, testingDigits, testingLabels))
   print "Final (unregularized) Cost: " + str(J(W1, W2, b1, b2, testingDigits, testingLabels))
