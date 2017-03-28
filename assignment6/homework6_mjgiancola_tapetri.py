@@ -28,6 +28,12 @@ We need:
 """
 
 # Parameters 
+learning_rate = 0.05
+
+
+# Placeholders
+x = tf.placeholder(tf.float32, [None, 784])
+y_actuals = tf.placeholder(tf.float32, [None, 10])
 
 
 # Neural network model
@@ -38,7 +44,7 @@ def NN(x, weights, biases, keep_prob):
   h_1 = tf.nn.relu(z_1)
   h_1_drop = tf.nn.dropout(h_1, keep_prob)
 
-  # Second hidden layer
+  # Second hidden layer (with ReLU)
   z_2 = tf.matmul(h_1_drop, weights['W2']) + biases['b2']
   h_2 = tf.nn.relu(z_2)
   h_2_drop = tf.nn.dropout(h_2, keep_prob)
@@ -97,25 +103,6 @@ with tf.Session() as session:
     y_actuals: mnist.test.labels
     keep_prob: 1.0
   }))
-
-
-
-if __name__ == '__main__':
-
-
-  x = tf.placeholder(tf.float32, [None, 784]) # Here, None means the dimension can be of any length
-
-  W = tf.Variable(tf.zeros([784, 10]))
-  b = tf.Variable(tf.zeros([10]))
-
-  y_hats = tf.matmul(x, W) + b
-  y_actuals = tf.placeholder(tf.float32, [None, 10])
-
-
-  correct_prediction = tf.equal(tf.argmax(y_hats,1), tf.argmax(y_actuals,1))
-  accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-  print(sess.run(accuracy, feed_dict={x: mnist.test.images, y_actuals: mnist.test.labels}))
-
 
 """
 learning rate schedule, momentum, minibatch size, optimizer
