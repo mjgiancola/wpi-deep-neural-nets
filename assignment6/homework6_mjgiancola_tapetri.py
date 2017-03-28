@@ -1,7 +1,8 @@
 import tensorflow as tf
+
+# Import MNIST data set
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
-sess = tf.InteractiveSession()  
 
 
 """
@@ -26,69 +27,77 @@ We need:
 
 """
 
-# initialization
-def weight_variable(shape):
-  initial = tf.truncated_normal(shape, stddev=0.1)
-  return tf.Variable(initial)
-
-def bias_variable(shape):
-  initial = tf.constant(0.1, shape=shape)
-  return tf.Variable(initial)
+# Parameters 
 
 
-# Creates all layers and interactions
-def network(hidden_units1, hidden_units2, keep_prob = 0.5):
-
-  x = tf.placeholder(tf.float32, shape=[None, 784])
-
-  # Hidden layer 1
-  W_1 = tf.Variable()
-  b_1 = tf.Variable()
-  z_1 = tf.matmul(x, W_1) + b_1
+# Neural network model
+def NN(x, weights, biases, keep_prob):
+  
+  # First hidden layer (with ReLU)
+  z_1 = tf.matmul(x, weights['W1']) + biases['b1']
   h_1 = tf.nn.relu(z_1)
   h_1_drop = tf.nn.dropout(h_1, keep_prob)
 
-  # Hidden layer 2
-  W_2 = tf.Variable()
-  b_2 = tf.Variable()
-  z_2 = tf.matmul(h_1_drop, W_2) + b_2
+  # Second hidden layer
+  z_2 = tf.matmul(h_1_drop, weights['W2']) + biases['b2']
   h_2 = tf.nn.relu(z_2)
   h_2_drop = tf.nn.dropout(h_2, keep_prob)
 
-  # Output layer
-  W_3 = tf.Variable()
-  b_3 = tf.Variable()
-  z_3 = tf.matmul(h_2_drop, W_3) + b_3
+  # Output layer, minus softmax
+  z_3 = tf.matmul(h_2_drop, weights['W3']) + biases['b3']
 
-  y_hats = z_3 # something something numerical stability
+# Can add various initialization procedures here
+weights = {
+  'W1': tf.Variable()
+  'W2': tf.Variable()
+  'W3': tf.Variable()
+}
 
-  return y_hats
+biases = {
+  'b1': tf.Variable()
+  'b2': tf.Variable()
+  'b3': tf.Variable()
+}
 
+# Construct model
+predictions = NN(x, weights, biases)
 
+# Define cost function on predictions and optmizer
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y))
+optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
+with tf.Session() as session:
+  tf.initialize_all_variables().run()
 
+  print("Starting Training")
+  for epoch in range(num_epochs):
 
-# Creates the training operation 
-def train(optimizer, y_hats, num_epochs=1000):
+    total_batches = int(mnist.train.num_examples/batch_size)
 
-  # Setup variables used for training
-  tf.global_variables_initializer().run()
+    # Train on whole randomised dataset looping over batches
+    for _ in range(total_batches)
+      batch_xs, batch_ys = mnist.train.next_batch(batch_size)
+      session.run([train_step], feed_dict = {
+        x: batch_xs, 
+        y_actuals: batch_ys,
+        keep_prob: 0.5
+      })
 
-  # Used for evaluation during training
-  y_actuals = tf.placeholder(tf.float32, [None, 10])
+    # Display current cost
+    if (epoch % 100 == 0):
+      print ("Loss")
 
-  # Loss function is cross entropy
-  cross_entropy = tf.reduce_mean( tf.nn.softmax_cross_entropy_with_logits(labels=y_actuals, logits=y_hats) )
-  train_step = optimizer.minimize(cross_entropy)
+  print("Training Completed!")
 
-  for _ in range(1000):
-    batch_xs, batch_ys = mnist.train.next_batch(100)
-    sess.run(train_step, feed_dict={x: batch_xs, y_actuals: batch_ys})
+  # Evaluate on test dataset when done.
+  correct_predictionss = tf.equal(tf.argmax(predictions,1), tf.argmax(y_actuals,1))
+  accuracy = tf.reduce_mean(tf.cast(correct_predictions, tf.float32))
+  print(sess.run(accuracy, feed_dict = {
+    x: mnist.test.images, 
+    y_actuals: mnist.test.labels
+    keep_prob: 1.0
+  }))
 
-
-
-# Return accuracy measure
-def evaluation():
 
 
 if __name__ == '__main__':
