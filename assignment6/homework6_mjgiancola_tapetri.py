@@ -13,7 +13,7 @@ mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 # Create logfile
 import datetime, os
 if not os.path.exists("logs/"): os.makedirs("logs/")
-logfile = open("logs/" + str(datetime.datetime.now()).replace(' ', '_')[:19] + ".log", 'w')
+logfile = open("logs/" + "Tim-4-layers-100-epochs" + str(datetime.datetime.now()).replace(' ', '_')[:19] + ".log", 'w')
 
 """
 * Two hidden layers, varying number of units
@@ -44,9 +44,10 @@ NUM_PIXELS = 784
 OUTPUT_UNITS = 10
 
 # Global Parameters to optimize
-global_learning_rate = 0.5
+global_learning_rate = 0.001
 global_hidden_units1 = 50
-global_hidden_units2 = 20
+global_hidden_units2 = 30
+global_hidden_units3 = 20
 global_momentum = 0.1
 global_use_dropout = True
 
@@ -70,14 +71,18 @@ def initialize_graph():
     tf.truncated_normal(shape=[global_hidden_units1, global_hidden_units2], 
                         stddev=1.0/np.sqrt(global_hidden_units1))),
   'W3': tf.Variable(
-    tf.truncated_normal(shape=[global_hidden_units2, OUTPUT_UNITS], 
-                        stddev=1.0/np.sqrt(global_hidden_units2)))
+    tf.truncated_normal(shape=[global_hidden_units2, global_hidden_units3], 
+                        stddev=1.0/np.sqrt(global_hidden_units2))),
+  'W4': tf.Variable(
+    tf.truncated_normal(shape=[global_hidden_units3, OUTPUT_UNITS], 
+                        stddev=1.0/np.sqrt(global_hidden_units3)))
   }
 
   biases = {
-    'b1': tf.Variable(tf.fill([global_hidden_units1], 0.1)),
-    'b2': tf.Variable(tf.fill([global_hidden_units2], 0.1)),
-    'b3': tf.Variable(tf.fill([OUTPUT_UNITS], 0.1))
+    'b1': tf.Variable(tf.fill([global_hidden_units1], 0.01)),
+    'b2': tf.Variable(tf.fill([global_hidden_units2], 0.01)),
+    'b3': tf.Variable(tf.fill([global_hidden_units3], 0.01)),
+    'b4': tf.Variable(tf.fill([OUTPUT_UNITS], 0.01))
   }
 
   # Construct model
@@ -85,7 +90,9 @@ def initialize_graph():
 
   # Define cost function on predictions and optmizer
   cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=predictions, labels=y_actuals))
-  optimizer = tf.train.GradientDescentOptimizer(learning_rate=global_learning_rate).minimize(cost)
+  # optimizer = tf.train.GradientDescentOptimizer(learning_rate=global_learning_rate).minimize(cost)
+  # optimizer = tf.train.MomentumOptimizer(learning_rate=global_learning_rate, momentum=global_momentum).minimize(cost)
+  optimizer = tf.train.AdamOptimizer().minimize(cost)
   return predictions, optimizer
 
 # Neural network model
@@ -101,9 +108,14 @@ def build_model(x, weights, biases, keep_prob):
   h_2 = tf.nn.relu(z_2)
   h_2_drop = tf.nn.dropout(h_2, keep_prob)
 
-  # Output layer, minus softmax
+  # Third hidden layer (with ReLU)
   z_3 = tf.matmul(h_2_drop, weights['W3']) + biases['b3']
-  return z_3
+  h_3 = tf.nn.relu(z_3)
+  h_3_drop = tf.nn.dropout(h_3, keep_prob)
+
+  # Output layer, minus softmax
+  z_4 = tf.matmul(h_3_drop, weights['W4']) + biases['b4']
+  return z_4
 
 # optimizers = {
 #   'SGD' : tf.train.GradientDescentOptimizer(global_learning_rate=global_learning_rate).minimize(cost),
@@ -143,11 +155,11 @@ def train_and_evaluate():
 
       # Display current cost
       if (epoch % 10 == 0):
-        _print ("Epoch: %3d, Current Training Set Accuracy: %.4f" % 
+        _print ("Epoch: %3d, Current Validation Set Accuracy: %.4f" % 
           (epoch,
            session.run(accuracy, feed_dict = {
-                    x: mnist.train.images, 
-                    y_actuals: mnist.train.labels,
+                    x: mnist.validation.images, 
+                    y_actuals: mnist.validation.labels,
                     keep_prob: 1.0
            })))
 
@@ -160,20 +172,48 @@ def train_and_evaluate():
         keep_prob: 1.0 })
     _print("Accuracy on validation set after training: %.4f\n" % validation_accuracy)
 
+    # Evaluate on test dataset when done.
+    test_accuracy = session.run(accuracy, feed_dict = {
+        x: mnist.test.images, 
+        y_actuals: mnist.test.labels,
+        keep_prob: 1.0 })
+    _print("Accuracy on test set after training: %.4f\n" % test_accuracy)
+
   tf.reset_default_graph()
-  return validation_accuracy
+  return test_accuracy, validation_accuracy
 
 def optimize():
 
-  global global_learning_rate, global_hidden_units1, global_hidden_units2, global_momentum, global_use_dropout
+  global global_learning_rate, global_hidden_units1, global_hidden_units2, global_hidden_units3, global_momentum, global_use_dropout
   best_acc = best_lr = best_hu1 = best_hu2 = best_momentum = best_kr = 0
 
   # Parameters settings to go through
-  learning_rates = [0.01, 0.1, 0.5]
-  hidden_units1_opts = [60, 40, 20]
-  hidden_units2_opts = [30, 20, 10]
-  momentum_opts = [0.01, 0.1, 0.5]
-  do_dropout = [True, False, True]
+  # learning_rates = [0.01, 0.1, 0.5]
+  # hidden_units1_opts = [60, 40, 20]
+  # hidden_units2_opts = [30, 20, 10]
+  # momentum_opts = [0.01, 0.1, 0.5]
+  # do_dropout = [True, False, True]
+
+  # Parameters settings to go through
+  # learning_rates = [0.01, 0.01, 0.01, 0.1, 0.1, 0.1, 0.2, 0.2, 0.2,]
+  # hidden_units1_opts = [60, 30, 50 ,60, 30, 50, 60, 30, 50,]
+  # hidden_units2_opts = [30, 30, 20 ,30, 30, 20, 30, 30, 20,]
+  # momentum_opts = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+  # do_dropout = [True, True, True, True, True, True, True, True, True]
+
+  # learning_rates = [0.001, 0.005, 0.003]
+  # hidden_units1_opts = [60, 60, 60]
+  # hidden_units2_opts = [50, 50, 50]
+  # hidden_units3_opts = [20, 20, 20]
+  # momentum_opts = [0.9, 0.8, 0.5]
+  # do_dropout = [True, True, True]
+
+  learning_rates = [0.001]
+  hidden_units1_opts = [200]
+  hidden_units2_opts = [200]
+  hidden_units3_opts = [200]
+  momentum_opts = [0.9]
+  do_dropout = [False]
 
   # Loops over sets of parameters
   for i in range(len(learning_rates)):
@@ -181,28 +221,30 @@ def optimize():
     global_learning_rate = learning_rates[i]
     global_hidden_units1 = hidden_units1_opts[i]
     global_hidden_units2 = hidden_units2_opts[i]
-    #global_momentum = momentumm_opts[i]
+    global_hidden_units3 = hidden_units3_opts[i]
+    global_momentum = momentum_opts[i]
     global_use_dropout = do_dropout[i]
 
-    _print("Training with:\nLR=%.3f, #HU1=%2d, #HU2=%2d, Dropout?=%r\n" % 
-          (global_learning_rate, global_hidden_units1, global_hidden_units2, global_use_dropout))
+    _print("Training with:\nLR=%.3f, #HU1=%2d, #HU2=%2d, #HU3=%2d, Dropout=%r\n" % 
+          (global_learning_rate, global_hidden_units1, global_hidden_units2,global_hidden_units3, global_use_dropout))
 
     # _print("Training with:\nLR=%.3f, #HU1=%2d, #HU2=%2d, Momentum=%.3f, Dropout?=%r\n" % 
     #       (global_learning_rate, global_hidden_units1, global_hidden_units2, global_momentum, global_use_dropout))
 
-    acc = train_and_evaluate()
+    test_acc, val_acc = train_and_evaluate()
 
     # If accuracy improved, store best results
-    if acc > best_acc:
+    if val_acc > best_acc:
       best_acc = acc
       best_lr = global_learning_rate
       best_hu1 = global_hidden_units1
       best_hu2 = global_hidden_units2
+      best_hu3 = global_hidden_units3
       best_momentum = global_momentum
       best_use_drop = global_use_dropout
 
-  _print("Best Hyperparameter Values:\nLR=%.3f, #HU1=%2d, #HU2=%2d, Dropout=%r" %
-        (best_lr, best_hu1, best_hu2, best_use_drop))
+  _print("Best Hyperparameter Values:\nLR=%.3f, #HU1=%2d, #HU2=%2d, #HU3=%2d, Dropout=%r" %
+        (best_lr, best_hu1, best_hu2, best_hu3, best_use_drop))
   # _print("Best Hyperparameter Values:\nLR=%.3f, #HU1=%2d, #HU2=%2d, Momentum=%.3f, Dropout=%r" %
   #       (best_lr, best_hu1, best_hu2, best_momentum, best_use_drop))
   _print("Completed at %s" % str(datetime.datetime.now()).replace(' ', '_')[:19])
