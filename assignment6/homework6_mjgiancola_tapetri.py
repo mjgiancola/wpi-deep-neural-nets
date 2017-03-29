@@ -56,6 +56,7 @@ optimize_hyperparameters = False
 global_learning_rate = 0.001
 global_hidden_units1 = 200
 global_hidden_units2 = 200
+global_hidden_units3 = 200
 global_use_dropout = False
 
 # Declare placeholders to give them global scope
@@ -153,7 +154,7 @@ def train_and_evaluate():
         })
 
       # Display current cost
-      if (epoch % 10 == 0):
+      if (epoch % 10 == 0 or (NUM_EPOCHS - epoch) < 20):
         _print ("Epoch: %3d, Current Validation Set Accuracy: %.4f" % 
           (epoch,
            session.run(accuracy, feed_dict = {
@@ -231,4 +232,6 @@ if __name__ == '__main__':
     optimize()
   
   else:
+    _print("Run Using Hyperparameter Values:\nLR=%.3f, #HU1=%2d, #HU2=%2d, #HU3=%2d, Dropout=%r" %
+          (global_learning_rate, global_hidden_units1, global_hidden_units2, global_hidden_units3, global_use_dropout))
     train_and_evaluate()
