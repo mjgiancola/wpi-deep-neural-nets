@@ -15,28 +15,6 @@ import datetime, os
 if not os.path.exists("logs/"): os.makedirs("logs/")
 logfile = open("logs/" + str(datetime.datetime.now()).replace(' ', '_')[:19] + ".log", 'w')
 
-""" TODO Delete
-* Two hidden layers, varying number of units
-* With and without Dropout 0.5 or 1
-* Weight initialization 
-  * (std: 1/sqrt(previs # units) for now)
-  * unit 
-* Try three different optimizers (SGD, Momentum, Adam)
-* batch size fixed 128
-* num epochs fixed 1000
-* activation functions
-  * try relu on all for now (experiment with tanh later)
-
-* SGD
-* Momentum,
-* Adam with learning rate schedule
-
-We need:
-* setup model (num_hidden_units, dr)
-* train model (batch size, num epochs)
-
-"""
-
 # Fixed
 NUM_EPOCHS = 100
 BATCH_SIZE = 128
