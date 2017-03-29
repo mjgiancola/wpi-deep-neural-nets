@@ -153,55 +153,53 @@ def train_and_evaluate():
 
     print("Training Completed!")
 
-    # Evaluate on test dataset when done.
-    test_accuracy = session.run(accuracy, feed_dict = {
-        x: mnist.test.images, 
-        y_actuals: mnist.test.labels,
+    # Evaluate on validation dataset when done.
+    validation_accuracy = session.run(accuracy, feed_dict = {
+        x: mnist.validation.images, 
+        y_actuals: mnist.validation.labels,
         keep_prob: 1.0 })
-    _print("Accuracy on test set after training: %.4f\n" % test_accuracy)
+    _print("Accuracy on validation set after training: %.4f\n" % validation_accuracy)
 
   tf.reset_default_graph()
-  return test_accuracy
+  return validation_accuracy
 
 def optimize():
 
   global global_learning_rate, global_hidden_units1, global_hidden_units2, global_momentum, global_use_dropout
   best_acc = best_lr = best_hu1 = best_hu2 = best_momentum = best_kr = 0
 
-  # Parameters to go through
+  # Parameters settings to go through
   learning_rates = [0.01, 0.1, 0.5]
   hidden_units1_opts = [60, 40, 20]
   hidden_units2_opts = [30, 20, 10]
-  momentum_opts = [0.001, 0.01, 0.1, 0.5]
-  do_dropout = [True, False]
+  momentum_opts = [0.01, 0.1, 0.5]
+  do_dropout = [True, False, True]
 
-  for current_lr in learning_rates:
-    for current_hidden_1 in hidden_units1_opts:
-      for current_hidden_2 in hidden_units2_opts:
-        for drop in do_dropout:
+  # Loops over sets of parameters
+  for i in range(len(learning_rates)):
 
-          global_learning_rate = current_lr
-          global_hidden_units1 = current_hidden_1
-          global_hidden_units2 = current_hidden_2
-          #global_momentum = current_momentum
-          global_use_dropout = drop
+    global_learning_rate = learning_rates[i]
+    global_hidden_units1 = hidden_units1_opts[i]
+    global_hidden_units2 = hidden_units2_opts[i]
+    #global_momentum = momentumm_opts[i]
+    global_use_dropout = do_dropout[i]
 
-          _print("Training with:\nLR=%.3f, #HU1=%2d, #HU2=%2d, Dropout?=%r\n" % 
-                (global_learning_rate, global_hidden_units1, global_hidden_units2, global_use_dropout))
+    _print("Training with:\nLR=%.3f, #HU1=%2d, #HU2=%2d, Dropout?=%r\n" % 
+          (global_learning_rate, global_hidden_units1, global_hidden_units2, global_use_dropout))
 
-          # _print("Training with:\nLR=%.3f, #HU1=%2d, #HU2=%2d, Momentum=%.3f, Dropout?=%r\n" % 
-          #       (global_learning_rate, global_hidden_units1, global_hidden_units2, global_momentum, global_use_dropout))
+    # _print("Training with:\nLR=%.3f, #HU1=%2d, #HU2=%2d, Momentum=%.3f, Dropout?=%r\n" % 
+    #       (global_learning_rate, global_hidden_units1, global_hidden_units2, global_momentum, global_use_dropout))
 
-          acc = train_and_evaluate()
+    acc = train_and_evaluate()
 
-          # If accuracy improved, store best results
-          if acc > best_acc:
-            best_acc = acc
-            best_lr = global_learning_rate
-            best_hu1 = global_hidden_units1
-            best_hu2 = global_hidden_units2
-            best_momentum = global_momentum
-            best_use_drop = global_use_dropout
+    # If accuracy improved, store best results
+    if acc > best_acc:
+      best_acc = acc
+      best_lr = global_learning_rate
+      best_hu1 = global_hidden_units1
+      best_hu2 = global_hidden_units2
+      best_momentum = global_momentum
+      best_use_drop = global_use_dropout
 
   _print("Best Hyperparameter Values:\nLR=%.3f, #HU1=%2d, #HU2=%2d, Dropout=%r" %
         (best_lr, best_hu1, best_hu2, best_use_drop))
