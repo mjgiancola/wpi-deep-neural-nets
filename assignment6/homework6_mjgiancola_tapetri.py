@@ -15,7 +15,7 @@ import datetime, os
 if not os.path.exists("logs/"): os.makedirs("logs/")
 logfile = open("logs/" + str(datetime.datetime.now()).replace(' ', '_')[:19] + ".log", 'w')
 
-"""
+""" TODO Delete
 * Two hidden layers, varying number of units
 * With and without Dropout 0.5 or 1
 * Weight initialization 
@@ -43,17 +43,27 @@ BATCH_SIZE = 128
 NUM_PIXELS = 784
 OUTPUT_UNITS = 10
 
-# Global Parameters to optimize
-global_learning_rate = 0.5
-global_hidden_units1 = 50
-global_hidden_units2 = 20
-global_momentum = 0.1
-global_use_dropout = True
+"""
+When this is set to True, the script optimizes a given set
+of hyperparameters, and verifies accuracy using the
+validation set. When set to False, the script trains using
+the global values given below, and does a final test of
+accuracy when run on the testing data
+"""
+optimize_hyperparameters = False
 
+# Optimized Global Parameters
+global_learning_rate = 0.001
+global_hidden_units1 = 200
+global_hidden_units2 = 200
+global_use_dropout = False
+
+# Declare placeholders to give them global scope
 keep_prob = None
 x = None
 y_actuals = None
 
+# Initializes variables within the TF graph before each experiment
 def initialize_graph():
   global keep_prob, x, y_actuals
 
@@ -85,7 +95,7 @@ def initialize_graph():
 
   # Define cost function on predictions and optmizer
   cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=predictions, labels=y_actuals))
-  optimizer = tf.train.GradientDescentOptimizer(learning_rate=global_learning_rate).minimize(cost)
+  optimizer = tf.train.AdamOptimizer(learning_rate=global_learning_rate).minimize(cost)
   return predictions, optimizer
 
 # Neural network model
@@ -104,14 +114,6 @@ def build_model(x, weights, biases, keep_prob):
   # Output layer, minus softmax
   z_3 = tf.matmul(h_2_drop, weights['W3']) + biases['b3']
   return z_3
-
-# optimizers = {
-#   'SGD' : tf.train.GradientDescentOptimizer(global_learning_rate=global_learning_rate).minimize(cost),
-#   'Momentum' : tf.train.MomentumOptimizer(global_learning_rate=global_learning_rate, momentum=global_momentum).minimize(cost),
-#   # 'Adam' : tf.train.GradientDescentOptimizer(global_learning_rate=global_learning_rate).minimize(cost)
-
-# }
-
 
 # Runs Tensorflow session using predefined optimizer and hyperparameters
 # Returns testing accuracy based on generated model
@@ -153,12 +155,21 @@ def train_and_evaluate():
 
     print("Training Completed!")
 
-    # Evaluate on validation dataset when done.
-    validation_accuracy = session.run(accuracy, feed_dict = {
-        x: mnist.validation.images, 
-        y_actuals: mnist.validation.labels,
-        keep_prob: 1.0 })
-    _print("Accuracy on validation set after training: %.4f\n" % validation_accuracy)
+    if optimize_hyperparameters:
+      # Evaluate on validation dataset when done.
+      validation_accuracy = session.run(accuracy, feed_dict = {
+          x: mnist.validation.images, 
+          y_actuals: mnist.validation.labels,
+          keep_prob: 1.0 })
+      _print("Accuracy on validation set after training: %.4f\n" % validation_accuracy)
+
+    else:
+      # Evaluate on testing dataset when done.
+      test_accuracy = session.run(accuracy, feed_dict = {
+          x: mnist.test.images, 
+          y_actuals: mnist.test.labels,
+          keep_prob: 1.0 })
+      _print("Accuracy on test set after training: %.4f\n" % test_accuracy)
 
   tf.reset_default_graph()
   return validation_accuracy
@@ -169,11 +180,11 @@ def optimize():
   best_acc = best_lr = best_hu1 = best_hu2 = best_momentum = best_kr = 0
 
   # Parameters settings to go through
-  learning_rates = [0.01, 0.1, 0.5]
-  hidden_units1_opts = [60, 40, 20]
-  hidden_units2_opts = [30, 20, 10]
+  learning_rates = [0.001]
+  hidden_units1_opts = [50]
+  hidden_units2_opts = [30]
   momentum_opts = [0.01, 0.1, 0.5]
-  do_dropout = [True, False, True]
+  do_dropout = [False]
 
   # Loops over sets of parameters
   for i in range(len(learning_rates)):
@@ -205,13 +216,14 @@ def optimize():
         (best_lr, best_hu1, best_hu2, best_use_drop))
   # _print("Best Hyperparameter Values:\nLR=%.3f, #HU1=%2d, #HU2=%2d, Momentum=%.3f, Dropout=%r" %
   #       (best_lr, best_hu1, best_hu2, best_momentum, best_use_drop))
+  _print("Best Accuracy: %.4f\n" % best_acc)
   _print("Completed at %s" % str(datetime.datetime.now()).replace(' ', '_')[:19])
   logfile.close()
 
 
 if __name__ == '__main__':
-  if 1: # Set to 1 to optimize hyperparameters
+  if optimize_hyperparameters:
     optimize()
   
-  else: # If above set to 0, just run on default global values
+  else:
     train_and_evaluate()
